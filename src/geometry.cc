@@ -51,7 +51,9 @@ GeometryHandler* GeometryHandler::Instance() {
   return _theInstance;
 }
 // ctor/dtor
-GeometryHandler::GeometryHandler() {
+GeometryHandler::GeometryHandler() : _minuitErrorX(1e-4),
+                                     _minuitErrorY(1e-4), 
+                                     _minuitErrorZ(1e-4) {
   gErrorIgnoreLevel = kWarning; // to silence Minuit warnings
 }
 GeometryHandler::~GeometryHandler() {
@@ -1306,9 +1308,15 @@ double GeometryHandler::PointFit(const vector<PointBase*>& points, const TVector
   ROOT::Minuit2::VariableMetricMinimizer minlow;
   // parameters
   ROOT::Minuit2::MnUserParameters param;
-  param.Add("x",initial.x(),1e-4);
-  param.Add("y",initial.y(),1e-4);
-  param.Add("z",initial.z(),1e-4);
+  //param.Add("x",initial.x(),1e-4);
+  //param.Add("y",initial.y(),1e-4);
+  //param.Add("z",initial.z(),1e-4);
+  
+  // should be large enough than beam sizes, say by factor 10, to search whole luminous region.
+  param.Add("x",initial.x(),_minuitErrorX); // for sig_x = 303nm, 1e3nm (>303nm) * 10 = 1e-2 mm.
+  param.Add("y",initial.y(),_minuitErrorY); // for sig_y = 2.4nm, 1e1nm (>2.4nm) * 10 = 1e-4 mm.
+  param.Add("z",initial.z(),_minuitErrorZ); // for sig_z = 194um, 1e3um (>194um) * 10 = 1e+1 mm.
+
   ROOT::Minuit2::FCNAdapter<ROOT::Math::IMultiGenFunction> func(f, 1. ); // errordef = 1 in chi2 minimization
 
   int maxfcn = 10000; // max function calls

@@ -267,11 +267,21 @@ class GeometryHandler {
   double PointFit(const vector<PointBase*>& points, const TVector3& initial, Point* result = 0);
   // initialization + PointFit()
   double HelixPointFit(const vector<Helix*>& helices, Point* result = 0);
+  
+  void setMinuitErrors(double xerr, double yerr, double zerr) { 
+     _minuitErrorX = xerr;
+     _minuitErrorY = yerr;
+     _minuitErrorZ = zerr;
+  }
 
  private:
   static GeometryHandler* _theInstance;
   GeometryHandler();
   ~GeometryHandler();
+
+  double _minuitErrorX;
+  double _minuitErrorY;
+  double _minuitErrorZ;
 };
 
 

@@ -19,6 +19,12 @@ class VertexFitterSimple {
 
     GeometryHandler* gh = GeometryHandler::Instance();
     if (pointConstraint) {
+
+      const double factor = 10.; // This affects vertex search region.
+      gh->setMinuitErrors(Globals::Instance()->getBeamSizeX()*factor,
+                          Globals::Instance()->getBeamSizeY()*factor,
+                          Globals::Instance()->getBeamSizeZ()*factor );
+
       Point* ip = new Point(pointConstraint);
       vector<PointBase*> tracks;
       if (!pointInitialOnly)
