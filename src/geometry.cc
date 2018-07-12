@@ -236,6 +236,9 @@ double Helix::LogLikelihood(const TVector3& p, double& tmin)const {
   double zleast, zperiod;
   FindZCross(p.X(), p.Y(), zleast,zperiod);
   int nz = int((p.Z()-zleast)/zperiod);
+#if 0
+std::cerr << " z0 = " << z0 << " zleast = " << zleast << " zperiod = " << zperiod << std::endl;
+#endif
 
   double z1 = zleast + zperiod * nz;
   double z2 = zleast + zperiod * (nz+1);
@@ -328,6 +331,11 @@ double Helix::LogLikelihood(const TVector3& p, double& tmin)const {
   min.Minimize();
 
   tmin = min.X()[0];
+#if 0
+  std::cerr << "####  geometry.cc Helix::Loglikelihood() " << std::endl;
+  std::cerr << "      Minimizer result: p = ( " << p.x() << ", " << p.y() << ", " << p.z() << "), ";
+  std::cerr << scientific << "tmin = " << tmin << ", val = " << vf(&tmin) << fixed << endl;
+#endif 
   if (verbose) {
     cout << "Minimizer result: p = ( " << p.x() << ", " << p.y() << ", " << p.z() << "), ";
     cout << scientific << "tmin = " << tmin << ", val = " << vf(&tmin) << fixed << endl;
@@ -385,6 +393,10 @@ Helix::Helix(const Track* trk) {
   _hel(iph) = trk->getPhi();
   _hel(iom) = trk->getOmega();
   _hel(itd) = trk->getTanLambda();
+#if 0
+  std::cerr << "## Helix constructor" << std::endl;
+  std::cerr << "trk->getX() = " << trk->getX() << " trk->getY() = " << trk->getY() << " trk->getZ() = " << trk->getZ() << std::endl;
+#endif
 
   const double* cov = trk->getCovMatrix();
   /*
@@ -739,7 +751,7 @@ TVector3 Helix::ClosePoint(const Helix& hel)const {
   assert(r1>=r2);
 
   // r1>r2 only.
-
+//std::cerr << " r1 = " << r1 << " r2 = " << r2 << std::endl;
   double x1,y1,x2,y2;
   GetCenter(x1,y1);
   hel.GetCenter(x2,y2);
@@ -758,6 +770,10 @@ TVector3 Helix::ClosePoint(const Helix& hel)const {
     yc = y1 + r1 * sin(phi+theta);
     xc2 = x1 + r1 * cos(phi-theta);
     yc2 = y1 + r1 * sin(phi-theta);
+#if 0
+    cout << "xy : (" << xc << ", " << yc << ")"
+         << " xy2 : (" << xc2 << ", " << yc2 << ")" << endl;
+#endif
   } else {
     nc = 1;
     double phi = atan2(y2-y1, x2-x1);
@@ -822,6 +838,9 @@ TVector3 Helix::ClosePoint(const Helix& hel)const {
 
   if (verbose)
     cout << "z11: " << z11 << ", z12: " << z12 << ", z1: " << z1 << endl;
+#if 0
+    cout << "z11: " << z11 << ", z12: " << z12 << ", z1: " << z1 << endl;
+#endif
 
   if (nc == 2) {
     FindZCross(xc2, yc2, zleast[0], zperiod[0]);
@@ -864,17 +883,70 @@ TVector3 Helix::ClosePoint(const Helix& hel)const {
 
     if (verbose)
       cout << "z21: " << z21 << ", z22: " << z22 << ", z2: " << z2 << endl;
+#if 0
+      cout << "z21: " << z21 << ", z22: " << z22 << ", z2: " << z2 << endl;
+#endif
 
 //			if(fabs(z22-z21) < fabs(z12-z11)){
+#if 0 //RYO 
+  double t = 0.; // to get initial position
+  double x0_1 = ( -_hel(id0) + 1./_hel(iom) )*sin( _hel(iph))
+          -  ( sin( _hel(iph) - _hel(iom)*t ) )/_hel(iom);
+
+  double y0_1 = ( _hel(id0) - 1./_hel(iom) )*cos( _hel(iph) )
+          +  ( cos( _hel(iph) - _hel(iom)*t ) )/_hel(iom);
+
+  double z0_1 = _hel(iz0) + _hel(iom)*t;
+
+  const SVector3 sv1(x0_1, y0_1, z0_1);
+  SMatrixSym3 err;
+  err(0,0) = 100.;
+  err(1,1) = 100.;
+  err(2,2) = 100.;
+  err(0,1) = 0.;
+  err(0,2) = 0.;
+  err(1,0) = 0.;
+  err(1,2) = 0.;
+  err(2,0) = 0.;
+  err(2,1) = 0.;
+  
+  Point psv1(sv1,err);
+
+  double x0_2 = ( -hel._hel(id0) + 1./hel._hel(iom) )*sin( hel._hel(iph))
+          -  ( sin( hel._hel(iph) - hel._hel(iom)*t ) )/hel._hel(iom);
+
+  double y0_2 = ( hel._hel(id0) - 1./hel._hel(iom) )*cos( hel._hel(iph) )
+          +  ( cos( hel._hel(iph) - hel._hel(iom)*t ) )/hel._hel(iom);
+
+  double z0_2 = hel._hel(iz0) + hel._hel(iom)*t;
+
+  const SVector3 sv2(x0_2, y0_2, z0_2);
+  Point psv2(sv1,err);
+
+//std::cerr << "############# Helix origin = " << x << " " << y << " " << z << std::endl;
+//std::cerr << "############# Helix2 origin = " << x2 << " " << y2 << " " << z2 << std::endl;
+    TVector3 p1(xc, yc, z1);
+    double ll1 = LogLikelihood(p1) + hel.LogLikelihood(p1);
+    double ll1_add = psv1.LogLikelihood(p1) + psv2.LogLikelihood(p1);
+    TVector3 p2(xc2, yc2, z2);
+    double ll2 = LogLikelihood(p2) + hel.LogLikelihood(p2);
+    double ll2_add = psv1.LogLikelihood(p2) + psv2.LogLikelihood(p2);
+//std::cerr << "Before L1 = " << ll1 << " L2 = " << ll2 << std::endl;
+//std::cerr << "After L1 = " << ll1+ll1_add << " L2 = " << ll2+ll2_add << std::endl;
+#else  
     TVector3 p1(xc, yc, z1);
     double ll1 = LogLikelihood(p1) + hel.LogLikelihood(p1);
     TVector3 p2(xc2, yc2, z2);
     double ll2 = LogLikelihood(p2) + hel.LogLikelihood(p2);
+#endif
     if (ll2 > ll1) {
       xc = xc2, yc = yc2, z1 = z2;
     }
   }
 
+#if 0
+      cout << "xc: " << xc << ", yc: " << yc << ", zc: " << z1 << endl;
+#endif
   return TVector3(xc, yc, z1);
 }
 
@@ -1306,13 +1378,29 @@ double GeometryHandler::PointFit(const vector<PointBase*>& points, const TVector
   ROOT::Minuit2::VariableMetricMinimizer minlow;
   // parameters
   ROOT::Minuit2::MnUserParameters param;
+#if 1
   param.Add("x",initial.x(),1e-4);
   param.Add("y",initial.y(),1e-4);
   param.Add("z",initial.z(),1e-4);
+#else
+#if 1
+  param.Add("x",initial.x(),1e-4);
+  param.Add("y",initial.y(),1e-4);
+  param.Add("z",initial.z(),1);
+#else
+  param.Add("x",initial.x(),1e-2); // 639*e-6 mm * 10
+  param.Add("y",initial.y(),1e-4); // 5.7*e-6 mm * 10
+  param.Add("z",initial.z(),1);  // 91.3*e-3 mm * 10
+#endif
+#endif
   ROOT::Minuit2::FCNAdapter<ROOT::Math::IMultiGenFunction> func(f, 1. ); // errordef = 1 in chi2 minimization
 
   int maxfcn = 10000; // max function calls
+#if 1
   double tol = 0.01; // tolerance
+#else
+  double tol = 0.001; // tolerance
+#endif
   ROOT::Minuit2::FunctionMinimum m = minlow.Minimize(func, param, ROOT::Minuit2::MnStrategy(1), maxfcn,tol);
 
   // obtained parameters
@@ -1378,6 +1466,13 @@ double GeometryHandler::HelixPointFit(const vector<Helix*>& helices, Point* resu
       TVector3 v = helices[i]->ClosePoint(*helices[j]);
       xyz[0] = v.x(), xyz[1] = v.y(), xyz[2] = v.z();
       double ll = -pf(xyz);
+#if 0
+if (v.Mag()>300)  {
+        std::cerr << "#### v.Mag() = " << v.Mag() << std::endl;
+        std::cerr << "#### x = " << v.x() << " y = " << v.y() << " z = " << v.z() << std::endl;
+        cout << "HelixPointFit: i = " << i << ", j = " << j << ", ll = " << ll << endl;
+}
+#endif
       if (verbose)
         cout << "HelixPointFit: i = " << i << ", j = " << j << ", ll = " << ll << endl;
       if (maxll < ll) {

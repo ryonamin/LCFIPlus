@@ -331,12 +331,25 @@ double calcThrust( vector<TVector3>& list, TVector3& taxis ) {
   return dThrust[0];
 }
 
+#if 0
 bool SimpleSecMuonFinder(const Track* tr, double d0sigth, double z0sigth, double maxpos, double mudepmin,
                          double ecaldepmin, double ecaldepmax, double hcaldepmin, double hcaldepmax, double maxclusterpertrackenergy) {
-
   double dist = sqrt(tr->getD0() *tr->getD0() + tr->getZ0() * tr->getZ0());
   double sigd0 = fabs(tr->getD0()) / sqrt(tr->getCovMatrix()[tpar::d0d0]);
   double sigz0 = fabs(tr->getZ0()) / sqrt(tr->getCovMatrix()[tpar::z0z0]);
+#else
+bool SimpleSecMuonFinder(const Track* tr, double d0sigth, double z0sigth, double maxpos, double mudepmin,
+                         double ecaldepmin, double ecaldepmax, double hcaldepmin, double hcaldepmax, double maxclusterpertrackenergy, const Vertex* pvtx) {
+  if (!pvtx) pvtx = new Vertex();
+  TVector3 ipv = pvtx->getPos();
+  double trkx = - tr->getD0() * sin(tr->getPhi());
+  double trky = tr->getD0() * cos(tr->getPhi());
+  double trkz = tr->getZ0();
+  TVector3 trkv(trkx,trky,trkz);
+  double dist = (trkv-ipv).Mag(); 
+  double sigd0 = fabs((trkv-ipv).Perp()) / sqrt(tr->getCovMatrix()[tpar::d0d0]);
+  double sigz0 = fabs((trkv-ipv).Z()) / sqrt(tr->getCovMatrix()[tpar::z0z0]);
+#endif
   double mudep = tr->getCaloEdep()[tpar::yoke];
   double ecaldep = tr->getCaloEdep()[tpar::ecal];
   double hcaldep = tr->getCaloEdep()[tpar::hcal];
@@ -351,12 +364,27 @@ bool SimpleSecMuonFinder(const Track* tr, double d0sigth, double z0sigth, double
          && ecaldep > ecaldepmin && ecaldep < ecaldepmax && hcaldep > hcaldepmin && hcaldep < hcaldepmax && (ecaldep + hcaldep)/tr->E() < maxclusterpertrackenergy;
 }
 
+#if 0
 bool SimpleSecElectronFinder(const Track* tr, double d0sigth, double z0sigth, double maxpos, double emin,
                              double minfracecal, double minecalpertrackenergy, double maxecalpertrackenergy) {
 
   double dist = sqrt(tr->getD0() *tr->getD0() + tr->getZ0() * tr->getZ0());
   double sigd0 = fabs(tr->getD0()) / sqrt(tr->getCovMatrix()[tpar::d0d0]);
   double sigz0 = fabs(tr->getZ0()) / sqrt(tr->getCovMatrix()[tpar::z0z0]);
+#else
+bool SimpleSecElectronFinder(const Track* tr, double d0sigth, double z0sigth, double maxpos, double emin,
+                             double minfracecal, double minecalpertrackenergy, double maxecalpertrackenergy, const Vertex* pvtx) {
+
+  if (!pvtx) pvtx = new Vertex();
+  TVector3 ipv = pvtx->getPos();
+  double trkx = - tr->getD0() * sin(tr->getPhi());
+  double trky = tr->getD0() * cos(tr->getPhi());
+  double trkz = tr->getZ0();
+  TVector3 trkv(trkx,trky,trkz);
+  double dist = (trkv-ipv).Mag(); 
+  double sigd0 = fabs((trkv-ipv).Perp()) / sqrt(tr->getCovMatrix()[tpar::d0d0]);
+  double sigz0 = fabs((trkv-ipv).Z()) / sqrt(tr->getCovMatrix()[tpar::z0z0]);
+#endif
   double ecaldep = tr->getCaloEdep()[tpar::ecal];
   double hcaldep = tr->getCaloEdep()[tpar::hcal];
   double fracecal = ecaldep / (ecaldep + hcaldep);

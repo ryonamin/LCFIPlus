@@ -13,6 +13,7 @@
 #include "VertexSelector.h"
 #include "algoEtc.h"
 #include "VertexFinderSuehara.h"
+#include "VertexFinderTearDown.h"
 #include "VertexFitterSimple.h"
 
 using namespace lcfiplus;
@@ -1477,5 +1478,388 @@ void VertexAnalysis::end() {
 }
 
 
+void CheckDistribution::init(Parameters* param){
+  Algorithm::init(param);
+  string filename = param->get("FileName",string("checkdist.root"));
+  _pvtxcolname = param->get("PrimaryVertexCollectionName",string("PrimaryVertex"));
+  _file = new TFile(filename.c_str(),"RECREATE");
+  _entp = new TTree("edata","");
+  _entp->Branch("nevt",&_edata.nevt,"nevt/I");
+  _entp->Branch("trkseleff",&_edata.trkseleff,"trkseleff");
+  _entp->Branch("ntrks",&_edata.ntrks,"ntrks/I");
+  _entp->Branch("pid_tracks",&_edata.pid_tracks,"pid_tracks[ntrks]/I");
+  _entp->Branch("nneutrals",&_edata.nneutrals,"nneutrals/I");
+  _entp->Branch("pid_neutrals",&_edata.pid_neutrals,"pid_neutrals[nneutrals]/I");
+  _vntp = new TTree("vdata","");
+  //_ntp->Branch("r_fit",&_r_fit,"r_fit/D");
+  //_ntp->Branch("z_fit",&_z_fit,"z_fit/D");
+  //_ntp->Branch("r_ref",&_r_ref,"r_ref/D");
+  //_ntp->Branch("z_ref",&_z_ref,"z_ref/D");
+  //_ntp->Branch("r_mc",&_r_mc,"r_mc/D");
+  //_ntp->Branch("z_mc",&_z_mc,"z_mc/D");
+  //_ntp->Branch("innermosthit_r",&_innermosthit_r,"innermosthit_r/D");
+  //_ntp->Branch("pid_mc",&_pid_mc,"pid_mc/I");
+  _vntp->Branch("nevt",&_edata.nevt,"nevt/I");
+  _vntp->Branch("isFromP",&_vdata.isFromP,"isFromP/B");
+  _vntp->Branch("isFromB",&_vdata.isFromB,"isFromB/B");
+  _vntp->Branch("isFromC",&_vdata.isFromC,"isFromC/B");
+  _vntp->Branch("isFromO",&_vdata.isFromO,"isFromO/B");
+  _vntp->Branch("isFromV0",&_vdata.isFromV0,"isFromV0/B");
+  _vntp->Branch("pdg",&_vdata.pdg,"pdg/I");
+  _vntp->Branch("ntrk",&_vdata.ntrk,"ntrk/I");
+  _vntp->Branch("trkchi2",_vdata.trkchi2,"trkchi2[ntrk]/D");
+  _vntp->Branch("mass",&_vdata.mass,"mass/D");
+
+  // parameters...(should be exported)
+  // Track selection criteria
+  _secVtxCfg = new TrackSelectorConfig;
+  _secVtxCfg->maxD0 = param->get("PrimaryVertexFinder.TrackMaxD0", 20.);
+  _secVtxCfg->maxZ0 = param->get("PrimaryVertexFinder.TrackMaxZ0", 20.);
+  _secVtxCfg->minVtxPlusFtdHits = param->get("PrimaryVertexFinder.TrackMinVtxFtdHits", 1);
+  _secVtxCfg->minTpcHits = param->get("PrimaryVertexFinder.TrackMinTpcHits", 999999);
+  _secVtxCfg->minTpcHitsMinPt = param->get("PrimaryVertexFinder.TrackMinTpcHitsMinPt", 999999);
+  _secVtxCfg->minFtdHits = param->get("PrimaryVertexFinder.TrackMinFtdHits", 999999);
+  _secVtxCfg->minVtxHits = param->get("PrimaryVertexFinder.TrackMinVxdHits", 999999);
+
+  _nEvt = 0;
 }
 
+void CheckDistribution::process() {
+ 
+  _edata.nevt = _nEvt++;
+
+  Event* event = Event::Instance();
+
+  TrackVec& tracks = event->getTracks();
+  const int ntrks = tracks.size();
+  _edata.ntrks = ntrks;
+  for (int itrk = 0; itrk < ntrks; itrk++) _edata.pid_tracks[itrk] = tracks[itrk]->getPDG();
+
+  // track selection
+  TrackVec passedTracks = TrackSelector() (tracks, *_secVtxCfg);
+  //std::cerr << "Track cut before = " << ntrks << std::endl;
+  //std::cerr << "Track cut after = " << passedTracks.size() << std::endl;
+  //std::cerr << "Ratio = " << ntrks/float(passedTracks.size()) << std::endl;
+  _edata.trkseleff = float(passedTracks.size())/ntrks;
+
+  const Vertex *pvtx = event->getPrimaryVertex(_pvtxcolname.c_str());
+  if (!pvtx) exit(1); 
+  // track selection 2
+  TrackVec passedTracks2 = TrackSelector() (tracks, *_secVtxCfg, pvtx);
+  std::cerr << "passed Track 1 = " << passedTracks.size() << ", 2 = " << passedTracks2.size() << std::endl;
+  
+
+  NeutralVec& neutrals = event->getNeutrals();
+  const int nneutrals = neutrals.size();
+  _edata.nneutrals = nneutrals;
+  for (int ineutral = 0; ineutral < nneutrals; ineutral++) _edata.pid_neutrals[ineutral] = neutrals[ineutral]->getPDG();
+
+  MCParticleVec& mcps = event->getMCParticles();
+  const int nmcps = mcps.size();
+
+  const int semistableBs[] = { 511, 521, 531, 541, 5122, 5132, 5232, 5332};
+  const int semistableCs[] = { 411, 421, 431, 4122, 4132, 4232, 4332};
+  //const int semistableOs[] = { 11, 13, 15, 22, 130, 211, 310, 321, 2112, 2212, 3112, 3122, 3212, 3222, 3312, 3322, 3334 };
+  const int semistableOs[] = { 11, 13, 15, 130, 211, 321, 2112, 2212, 3112, 3212, 3222, 3312, 3322, 3334 };
+  const int v0s[] = { 22, 310, 3122 };
+  const int nsb = sizeof(semistableBs) / sizeof(int);
+  const int nsc = sizeof(semistableCs) / sizeof(int);
+  const int nso = sizeof(semistableOs) / sizeof(int);
+  const int nsv = sizeof(v0s) / sizeof(int);
+
+  for (int imcp = 0; imcp < nmcps; imcp++) {
+
+     const lcfiplus::MCParticle* mcp = mcps[imcp];
+     //if (mcp->getPDG()==94) continue; 
+     if (isNoVisibleDaughters(mcp)) continue;
+     _vdata.pdg = mcp->getPDG();
+
+     bool isPrimary = false;
+     const TVector3 vpos = mcp->getVertex();
+     if (vpos.Perp() < 0.01 && abs(vpos.z()) < 0.5 ) {
+       //std::cerr << "mcp->getPDG() = " << mcp->getPDG() << " E = " << mcp->E() << std::endl;  
+       isPrimary = true;
+     }
+     bool isSemistableB = false;
+     bool isSemistableC = false;
+     bool isSemistableO = false;
+     bool isV0 = false;
+     if( binary_search(semistableBs, semistableBs + nsb, abs(mcp->getPDG()))) isSemistableB = true; 
+     if( binary_search(semistableCs, semistableCs + nsc, abs(mcp->getPDG()))) isSemistableC = true; 
+     if( binary_search(semistableOs, semistableOs + nso, abs(mcp->getPDG()))) isSemistableO = true; 
+     if( binary_search(v0s, v0s + nsv, abs(mcp->getPDG()))) isV0 = true; 
+     _vdata.isFromP = isPrimary;
+     _vdata.isFromB = isSemistableB;
+     _vdata.isFromC = isSemistableC;
+     _vdata.isFromO = isSemistableO;
+     _vdata.isFromV0 = isV0;
+
+     // Looking into a semistable vertex.
+
+     TVector3 pos = mcp->getVertex();
+     _vdata.x = pos.x();
+     _vdata.y = pos.y();
+     _vdata.z = pos.z();
+
+     std::vector<const lcfiplus::MCParticle*> mcdaughters;
+     //std::cerr << "mcp->getPDG() = " << mcp->getPDG() << std::endl;
+     //std::cerr << "mcp->getDaughters().size() = " << mcp->getDaughters().size() << std::endl;
+     // Skip if this mcp is unstable, e.g. 94, 5, -5, ...
+     setDaughterTracks(mcp, mcdaughters);
+     //std::cerr << "mcdaughters.size() = " << mcdaughters.size() << std::endl;
+
+     
+     std::vector<const lcfiplus::Track*> mctracks;
+     std::map<const lcfiplus::Track*,const lcfiplus::MCParticle*> mctrackrel;
+     TLorentzVector sum4p(0,0,0,0);
+     int ntrkFound = 0;
+     // Find correspoinding tracks to the vertex.
+     for (int itrk = 0; itrk < ntrks; itrk++) {
+       const lcfiplus::Track* trk = tracks[itrk]; 
+       const lcfiplus::MCParticle* trkmcp = trk->getMcp();
+       mctrackrel.insert(std::map<const lcfiplus::Track*,const lcfiplus::MCParticle*>::value_type(trk,trkmcp));
+       for (int imcd = 0; imcd < mcdaughters.size(); imcd++) {
+         if (trkmcp == mcdaughters[imcd]) {
+           ntrkFound++;
+           //std::cerr << "Found correspoinding tracks! pid = " << mcdaughters[imcd]->getPDG() << std::endl;
+           
+           TLorentzVector trkmc4p(trkmcp->Px(),trkmcp->Py(),trkmcp->Pz(),trkmcp->E()); 
+           sum4p += trkmc4p;
+
+           mctracks.push_back(trk);
+
+           break;
+         }
+         //else std::cerr << "No correspoinding tracks" << std::endl;
+       }
+     }
+     _vdata.ntrk = ntrkFound;
+     _vdata.mass = sum4p.M();
+#if 1
+     // Reconstruct vertex using mcdaughters. 
+     Vertex* ip(0);
+     bool beamspotConstraint = true;
+     bool smearBeamspot = false;
+     if (beamspotConstraint) algoEtc::makeBeamVertex(ip,smearBeamspot);
+
+     //double chi2 = 9.0;
+     double chi2cut = 1e10;
+     //if (ptrks.size()<3) continue;
+     Vertex* vtx =  VertexFinderTearDown<vector, VertexFitterSimple>()(mctracks, 0, chi2cut, 0, ip);
+     if (vtx) {
+        //std::cerr << "#### vtx->getChi2Track() = " << vtx->getChi2Track(trk) << std::endl;
+        //std::cerr << "#### vtx->getChi2() = " << vtx->getChi2() << std::endl;
+        //std::cerr << "#### vtx->getX() = " << vtx->getX() << std::endl;
+        //std::cerr << "#### vtx->getY() = " << vtx->getY() << std::endl;
+        //std::cerr << "#### vtx->getZ() = " << vtx->getZ() << std::endl;
+        //const Track* worst = vtx->getWorstTrack();
+        //std::cerr << "worst->getPDG() = " << worst->getPDG() << " worst->E() = " << worst->E() << std::endl;
+        //TVector3 v = mctrackrel[worst]->getVertex(); 
+        //std::cerr << "worst->getVertex = " << v.x() << " " << v.y() << " " << v.z() << std::endl;
+        //std::cerr << "#### vtx->getChi2Track(worst) = " << vtx->getChi2Track(worst) << std::endl;
+        //std::cerr << "#### worst D0 = " << worst->getD0() << " Z0 = " << worst->getZ0() << std::endl;
+
+        //// remove worst track
+        //std::vector<const lcfiplus::Track*>::iterator it = mctracks.begin();
+        //while (it != mctracks.end()) {
+        //   if (*it == worst) {
+        //     mctracks.erase(it);
+        //     break;
+        //   } 
+        //   ++it;
+        //}
+
+        //Vertex* vtx2 =  VertexFinderTearDown<vector, VertexFitterSimple>()(mctracks, 0, chi2, 0, ip);
+        //std::cerr << "#### vtx2->getChi2() = " << vtx2->getChi2() << std::endl;
+        
+        std::vector<const lcfiplus::Track*>::iterator it = mctracks.begin();
+        int counter = 0;
+//std::cerr << "isPrimary = " << isPrimary << " isSemistableB = " << isSemistableB << "  isSemistableC = " << isSemistableC << "  isSemistableO = " << isSemistableO << " isV0 = " << isV0 << std::endl;
+        while (it != mctracks.end()) {
+          //std::cerr << "#### vtx->getChi2Track(" << counter << ") = " << vtx->getChi2Track(*it) << std::endl;
+          _vdata.trkchi2[counter] = vtx->getChi2Track(*it);
+          ++it;
+          ++counter;
+        }
+        _vntp->Fill();
+     }
+#endif
+        
+  }
+  _entp->Fill();
+#if 0
+  //std::cerr << "# of tracks = " << tracks.size() << std::endl;
+  vector<const Track *> ptrks;
+  vector<const Track *> btrks;
+  vector<const Track *> ctrks;
+  const int ntrks = tracks.size();
+  map<const MCParticle *, const Track *> mcp_trks; 
+  for (int itrk = 0; itrk < ntrks; itrk++) {
+    const Track* trk = tracks[itrk];
+    //std::cerr << std::endl;
+    //std::cerr << "### New track " << std::endl;
+    //std::cerr << "### charge = " << trk->getCharge() << std::endl;
+    //std::cerr << "### trk pid = " << trk->getPDG() << std::endl;
+    const MCParticle* mcp = trk->getMcp();
+    //std::cerr << "### mc pid = " << mcp->getPDG() << std::endl;
+    //std::cerr << "### mcp  = " << mcp << std::endl;
+    if (!mcp) {
+      std::cerr << "Not found MCParticle for this track." << std::endl;
+      continue;
+    }
+    //std::cerr << "itrk = " << itrk << " mcp = " << mcp << " mcp_trks.size = " << mcp_trks.size() << std::endl; 
+    bool isIdenticalMCPFound = false;
+    map<const MCParticle*, const Track*>::iterator itr;
+    for (itr=mcp_trks.begin(); itr!=mcp_trks.end(); ++itr) {
+       if (itr->first==mcp) {
+          isIdenticalMCPFound = true;
+          const Track* pre = itr->second;
+          if (pre->getPos().Mag()>trk->getPos().Mag()) {
+            mcp_trks.insert(map<const MCParticle*,const Track*>::value_type(mcp,trk));
+          }
+       } 
+    }
+    // 1 mcp sometimes creates multi tracks because of kink.
+    // If this mcp is the first appearance in the map, add the mcp into the map.
+    if (!isIdenticalMCPFound) mcp_trks.insert(map<const MCParticle*,const Track*>::value_type(mcp,trk));
+
+  }
+  vector<const Track *> tracks_new;
+  map<const MCParticle*, const Track*>::iterator itr;
+  for (itr=mcp_trks.begin(); itr!=mcp_trks.end(); ++itr) {
+    const Track* trk = itr->second;
+    tracks_new.push_back(trk); 
+  }
+  const int ntrks2 = tracks_new.size();
+  for (int itrk = 0; itrk < ntrks2; itrk++) {
+    const Track* trk = tracks[itrk];
+    const MCParticle* mcp = trk->getMcp();
+
+    //std::cerr << "### mcp pid = " << mcp->getPDG() << std::endl;
+    const TVector3 vpos = mcp->getVertex();
+    //const TVector3 endpos = mcp->getEndVertex();
+    //std::cerr << "### mcp vpos.Mag() = " << vpos.Mag() << std::endl;
+    //std::cerr << "### mcp vpos = " << vpos.x() << ", " << vpos.y() << ", " << vpos.z() << std::endl;
+    //std::cerr << "### mcp endpos = " << endpos.x() << ", " << endpos.y() << ", " << endpos.z() << std::endl;
+    std::cerr << "px = " << mcp->Px() << ", py = " << mcp->Py() << ", pz = " << mcp->Pz() << ", e = " << mcp->E() << std::endl;
+    if (vpos.Mag()<0.01) { //FIXME
+      ptrks.push_back(trk);
+#if 1
+      //std::cerr << "# of primary tracks = " << ptrks.size() << std::endl; 
+      //Vertex *pvtx = VertexFitterSimple_V()(ptrks.begin(), ptrks.end());
+      
+
+      Vertex* ip(0);
+      bool beamspotConstraint = true;
+      bool smearBeamspot = false;
+      if (beamspotConstraint)
+        algoEtc::makeBeamVertex(ip,smearBeamspot);
+
+      //double chi2 = 9.0;
+      double chi2 = 1e10;
+      if (ptrks.size()<3) continue;
+      Vertex* pvtx =  VertexFinderTearDown<vector, VertexFitterSimple>()(ptrks, 0, chi2, 0, ip);
+      
+      //std::cerr << "#### pvtx->getChi2Track() = " << pvtx->getChi2Track(trk) << std::endl;
+      //std::cerr << "#### pvtx->getChi2() = " << pvtx->getChi2() << std::endl;
+      //std::cerr << "#### pvtx->getX() = " << pvtx->getX() << std::endl;
+      //std::cerr << "#### pvtx->getY() = " << pvtx->getY() << std::endl;
+      //std::cerr << "#### pvtx->getZ() = " << pvtx->getZ() << std::endl;
+
+      Helix hel(trk);
+      double tmin = -9999999;
+      hel.LogLikelihood(pvtx->getPos(), tmin);
+      TVector3 nearest = hel.GetPos(tmin);
+      std::cerr << "d0 = " << trk->getD0() << ", Z0 = " << trk->getD0() << std::endl;
+      double distance = (pvtx->getPos()-nearest).Mag(); 
+      std::cerr << " tmin = " << tmin << " distance = " << distance << std::endl;
+      //std::cerr << "nearest = (" << nearest.x() << ", " << nearest.y() << ", " << nearest.z() << ")" << std::endl;
+      double r_fit = nearest.Perp();
+      std::cerr << "trk_fit = (" << r_fit << ", " << nearest.z() << ")" << std::endl;
+      trk->setFlightLength(0.);
+      double r_ref = TMath::Sqrt(TMath::Power(trk->getX(),2) + TMath::Power(trk->getY(),2));
+      std::cerr << "trk_ref = (" << r_ref << ", " << trk->getZ() << ")" << std::endl;
+      double r_mc = vpos.Perp();
+      std::cerr << "trk_mc = (" << r_mc << ", " << vpos.z() << ")" << std::endl;
+      _r_fit = r_fit;
+      _z_fit = nearest.z();
+      _r_ref = r_ref;
+      _z_ref = trk->getZ();
+      _r_mc = r_mc;
+      _z_mc = vpos.z();
+      _innermosthit_r = trk->getRadiusOfInnermostHit();
+      _pid_mc = mcp->getPDG();
+      _ntp->Fill();
+#endif
+    }
+    //const MCParticle* mcparent = mcp->getParent();
+#if 0
+    const MCParticle* mcSemiStableB = mcp->getSemiStableBParent();
+    if (mcSemiStableB) {
+      std::cerr << "### stable B particle found pid = " << mcSemiStableB->getPDG() << std::endl;
+    }
+    const MCParticle* mcSemiStableC = mcp->getSemiStableCParent();
+    if (mcSemiStableC) {
+      std::cerr << "### stable C particle found pid = " << mcSemiStableC->getPDG() << std::endl;
+    }
+#endif
+
+    //std::cerr << "### mcparent pid = " << mcparent->getPDG() << std::endl;
+    //const vector<const MCParticle*> mcdaughters = mcp->getDaughters();
+    //const int ndaughters = mcdaughters.size();
+    //for (int idau = 0; idau < ndaughters; idau++) {
+    //  const MCParticle* mcdaughter = mcdaughters[idau];
+    //  std::cerr << "  ## mcdaughter " << idau << " = " << mcdaughter->getPDG() << std::endl;
+    //} 
+  }
+#if 0
+  std::cerr << "# of primary tracks = " << ptrks.size() << std::endl; 
+  Vertex *pvtx = VertexFitterSimple_V()(ptrks.begin(), ptrks.end());
+  std::cerr << "#### pvtx->getChi2() = " << pvtx->getChi2() << std::endl;
+  std::cerr << "#### pvtx->getX() = " << pvtx->getX() << std::endl;
+  std::cerr << "#### pvtx->getY() = " << pvtx->getY() << std::endl;
+  std::cerr << "#### pvtx->getZ() = " << pvtx->getZ() << std::endl;
+#endif
+#endif
+}
+
+void CheckDistribution::end() {
+  _file->Write();
+}
+
+}
+
+void CheckDistribution::setDaughterTracks(const lcfiplus::MCParticle* mcp, std::vector<const lcfiplus::MCParticle*>& mcdaughters) {
+  
+  int ndaughters = mcp->getDaughters().size(); 
+  //std::cerr << "ndaughters = " << ndaughters << std::endl;
+  for (int i = 0; i < ndaughters; i++) {
+    const lcfiplus::MCParticle* mcd = static_cast<const lcfiplus::MCParticle*>(mcp->getDaughters()[i]);
+    if (mcd->isStable()||mcd->isSemiStable()) {
+      if (mcd->getCharge()>0.||mcd->getCharge()<0.) {
+         //std::cerr << " " << mcd->getPDG() << std::endl;
+         mcdaughters.push_back(mcd);
+      }
+    } else { // only when it is an unstable particle.
+      setDaughterTracks(mcd,mcdaughters);
+    } 
+    //setDaughterTracks(mcd,mcdaughters);
+  }
+  
+}
+
+bool CheckDistribution::isNoVisibleDaughters(const lcfiplus::MCParticle* mcp) {
+  //const MCColorSingletVec& mccss = Event::Instance()->getMCColorSinglets();
+  //std::cerr << "mccss.size() = " << mccss.size() << std::endl;
+  int ndaughters = mcp->getDaughters().size(); 
+  for (int i = 0; i < ndaughters; i++) {
+    const lcfiplus::MCParticle* mcd = static_cast<const lcfiplus::MCParticle*>(mcp->getDaughters()[i]);
+    if (mcd->isStable()||mcd->isSemiStable()) {
+      if (mcd->getCharge()>0.||mcd->getCharge()<0.) {
+        return false;
+      } 
+    } 
+  } 
+  //return false;
+  return true;
+}

@@ -46,6 +46,7 @@ bool trackSelectionForFlavorTag(const Track* trk, int nHitCut) {
 //////////////////////////////////////////////////////////
 
 double trackD0Significance(const Track* trk, const Vertex* pri) {
+#if 0
   // take primary vertex error before minimization
   // because this is what LCFI does
   trk->setFlightLength(0);
@@ -83,14 +84,33 @@ double trackD0Significance(const Track* trk, const Vertex* pri) {
   //double d0 = trk->par[Track::d0];
   double d0 = sqrt( pow(x-pri->getX(),2)+pow(y-pri->getY(),2) );
   double d0err = sqrt( trk->getCovMatrix()[tpar::d0d0] + priErr );
+  double d0cov = trk->getCovMatrix()[tpar::d0d0];
+#else
+  bool updateFlt = true;
+  double d0 = trackPositionFromPrimaryVertex(trk,pri,updateFlt).Perp();
+  //double d0err = sqrt( trk->getCovMatrix()[tpar::d0d0] + priErr );
+  // error from track
+  double d0cov = trk->getCovMatrix()[tpar::d0d0];
+  // error from vertex 
+  double x0 = pri->getX();
+  double y0 = pri->getY();
+  double x02 = x0*x0;
+  double y02 = y0*y0;
+  // D0^2 = x^2 + y^2
+  double pvcov = (pri->getCov()[Vertex::xx]*x02 + pri->getCov()[Vertex::yy]*y02)/(x02+y02);
+  double d0err = sqrt( d0cov + pvcov );
+#endif
   double d0sig = d0/d0err;
 
   //if ( d0 != d0 ) printf("d0 nan\n");
-  double d0cov = trk->getCovMatrix()[tpar::d0d0];
   //if ( d0cov != d0cov ) printf("d0cov nan\n");
   //if ( d0cov < 0 ) printf("d0cov %f\n",d0cov);
 
+#if 0
   if ( d0err != d0err ) printf("d0err nan, d0cov %f, priErr=%f\n", d0cov, priErr);
+#else
+  if ( d0err != d0err ) printf("d0err nan, d0cov %f, pvcov=%f\n", d0cov, pvcov);
+#endif
   /*
   if ( d0sig != d0sig ) {
   	printf("d0sig nan\n");
@@ -112,6 +132,7 @@ double trackD0Significance(const Track* trk, const Vertex* pri) {
 
 // z0 significance at the poca taken in the x-y plane
 double trackZ0Significance(const Track* trk, const Vertex* pri) {
+#if 0
   trk->setFlightLength(0);
   //double priErr = pri->getCov()[Vertex::zz];
   double priErr = 0;
@@ -124,7 +145,13 @@ double trackZ0Significance(const Track* trk, const Vertex* pri) {
 
   //double z0 = trk->par[Track::z0];
   double z0 = fabs( z-pri->getZ() );
-  double z0err = sqrt( trk->getCovMatrix()[tpar::z0z0] + priErr );
+#else
+  bool updateFlt = true;
+  double z0 = fabs(trackPositionFromPrimaryVertex(trk,pri,updateFlt).Z());
+  double z0cov = trk->getCovMatrix()[tpar::z0z0];
+  double pvcov = pri->getCov()[Vertex::zz];
+#endif
+  double z0err = sqrt( z0cov + pvcov );
   double z0sig = z0/z0err;
 
   return z0sig;
@@ -132,33 +159,54 @@ double trackZ0Significance(const Track* trk, const Vertex* pri) {
 
 double signedD0Significance(const Track* trk, const Jet* jet, const Vertex* pri, bool updateFlt) {
   TVector3 jet2d( jet->Vect().X(), jet->Vect().Y(), 0);
+#if 0
   trk->setFlightLength(0);
+#endif
 
   // take primary vertex error before minimization because this is what LCFI does
   //double x0 = trk->getX();
   //double y0 = trk->getY();
+  if (updateFlt) {
+    TrackPocaXY pocaXY(trk,pri);
+    trk->setFlightLength( pocaXY.getFlightLength() );
+  }
+#if 0
   double priErr = 0.;
   /*
   double priErr = ( pri->getCov()[Vertex::xx]*x0*x0
   		+ 2.0*pri->getCov()[Vertex::xy]*x0*y0
   		+ pri->getCov()[Vertex::yy]*y0*y0 ) / (x0*x0+y0*y0);
   		*/
+#else
+  double x0 = pri->getX();
+  double y0 = pri->getY();
+  double x02 = x0*x0;
+  double y02 = y0*y0;
+  // D0^2 = x^2 + y^2
+  double pvcov = (pri->getCov()[Vertex::xx]*x02 + pri->getCov()[Vertex::yy]*y02)/(x02+y02);
+#endif
 
-  if (updateFlt) {
-    TrackPocaXY pocaXY(trk,pri);
-    trk->setFlightLength( pocaXY.getFlightLength() );
-  }
 
   // determine sign of significance relative to jet direction
+#if 0 // this will not take into account of the flt above.
   TVector3 pca( -trk->getD0()*sin(trk->getPhi()),
                 trk->getD0()*cos(trk->getPhi()), trk->getZ0() );
+#else
+  //TVector3 pca = trk->getPos();
+  TVector3 pca = trackPositionFromPrimaryVertex(trk,pri,!updateFlt);
+#endif
   double signd0(1);
   if (pca.Dot(jet2d) < 0) signd0 = -1;
 
+#if 0
   double d0 = sqrt( pow(trk->getX()-pri->getX(),2)+pow(trk->getY()-pri->getY(),2) );
   double d0errsq = trk->getCovMatrix()[tpar::d0d0] + priErr;
+#else
+  // Flt will be updated only when it is not yet done.
+  double d0 = pca.Perp();
+  double d0errsq = trk->getCovMatrix()[tpar::d0d0] + pvcov;
+#endif
   double d0sig = sqrt( d0*d0/d0errsq )*signd0;
-
   if (fabs(d0sig)<1e-6) {
     cout << "SMALL D0SIG::::: d0=" << d0 << ", d0errsq=" << d0errsq << ", d0sig=" << d0sig << endl;
   }
@@ -168,7 +216,9 @@ double signedD0Significance(const Track* trk, const Jet* jet, const Vertex* pri,
 
 double signedD0(const Track* trk, const Jet* jet, const Vertex* pri, bool updateFlt) {
   TVector3 jet2d( jet->Vect().X(), jet->Vect().Y(), 0);
+#if 0
   trk->setFlightLength(0);
+#endif
 
   if (updateFlt) {
     TrackPocaXY pocaXY(trk,pri);
@@ -176,12 +226,22 @@ double signedD0(const Track* trk, const Jet* jet, const Vertex* pri, bool update
   }
 
   // determine sign of significance relative to jet direction
+#if 0
   TVector3 pca( -trk->getD0()*sin(trk->getPhi()),
                 trk->getD0()*cos(trk->getPhi()), trk->getZ0() );
+#else
+  //TVector3 pca = trk->getPos();
+  TVector3 pca = trackPositionFromPrimaryVertex(trk,pri,!updateFlt);
+#endif
   double signd0(1);
   if (pca.Dot(jet2d) < 0) signd0 = -1;
 
+#if 0
   double d0 = sqrt( pow(trk->getX()-pri->getX(),2)+pow(trk->getY()-pri->getY(),2) );
+#else
+  // Flt will be updated only when it is not yet done.
+  double d0 = pca.Perp();
+#endif
 
   return signd0 * d0;
 }
@@ -195,13 +255,23 @@ double signedZ0Significance(const Track* trk, const Jet* jet, const Vertex* pri,
   }
 
   // determine sign of significance relative to jet direction
+#if 0
   TVector3 pca( -trk->getD0()*sin(trk->getPhi()),
                 trk->getD0()*cos(trk->getPhi()), trk->getZ0() );
+#else
+  //TVector3 pca = trk->getPos();
+  TVector3 pca = trackPositionFromPrimaryVertex(trk,pri,!updateFlt);
+#endif
   double signz0(1);
   if (pca.Dot(jetz) < 0) signz0 = -1;
+#if 0
   double z0 = trk->getZ0() - pri->getZ();
-  //double z0errsq = trk->getCovMatrix()[tpar::z0z0] + pri->getCov()[Vertex::zz];
-  double z0errsq = trk->getCovMatrix()[tpar::z0z0];
+#else
+  //double z0 = fabs(trackPositionFromPrimaryVertex(trk,pri,!updateFlt).Z());
+  double z0 = fabs(pca.Z());
+#endif
+  double z0errsq = trk->getCovMatrix()[tpar::z0z0] + pri->getCov()[Vertex::zz];
+  //double z0errsq = trk->getCovMatrix()[tpar::z0z0];
   double z0sig = sqrt( z0*z0/z0errsq )*signz0;
   return z0sig;
 }
@@ -215,11 +285,21 @@ double signedZ0(const Track* trk, const Jet* jet, const Vertex* pri, bool update
   }
 
   // determine sign of significance relative to jet direction
+#if 0
   TVector3 pca( -trk->getD0()*sin(trk->getPhi()),
                 trk->getD0()*cos(trk->getPhi()), trk->getZ0() );
+#else
+  //TVector3 pca = trk->getPos();
+  TVector3 pca = trackPositionFromPrimaryVertex(trk,pri,!updateFlt);
+#endif
   double signz0(1);
   if (pca.Dot(jetz) < 0) signz0 = -1;
+#if 0
   double z0 = trk->getZ0() - pri->getZ();
+#else
+  //double z0 = fabs(trackPositionFromPrimaryVertex(trk,pri,!updateFlt).Z());
+  double z0 = fabs(pca.Z());
+#endif
   return signz0 * z0;
 }
 
@@ -488,6 +568,17 @@ void findMostSignificantTrack(const Jet* jet, const Vertex* pri, int minhitcut, 
     sigVec[5] = 0;
   }
 }
+
+#if 1
+TVector3 trackPositionFromPrimaryVertex(const Track* trk, const Vertex* pri, bool updateFlt) {
+  if (updateFlt) {
+    TrackPocaXY pocaXY(trk,pri);
+    double flt = pocaXY.getFlightLength();
+    trk->setFlightLength( flt );
+  }
+  return trk->getPos() - pri->getPos();
+}
+#endif
 
 }
 }

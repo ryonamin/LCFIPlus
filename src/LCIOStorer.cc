@@ -113,6 +113,9 @@ void LCIOStorer::InitMCPPFOCollections(const char* pfoColName, const char* mcCol
   if (!event->IsExist(pfoColName)) {
     event->Register<Track>(pfoColName,pTracks);
     event->Register<Neutral>(pfoColName,pNeutrals);
+#if 1
+std::cerr << "### LCIOStorer::InitMCPPFOCollections called" << std::endl;
+#endif
     _importPFOCols[pfoColName] = make_pair(pTracks, pNeutrals);
   }
 
@@ -291,7 +294,7 @@ void LCIOStorer::SetEvent(lcio::LCEvent* evt) {
   map<string, vector<lcfiplus::MCParticle*> *>::iterator itMcpCol;
   for (itMcpCol = _importMCPCols.begin(); itMcpCol != _importMCPCols.end(); itMcpCol ++) {
 
-    LCCollection* colMC = evt->getCollection(itMcpCol->first);
+    lcio::LCCollection* colMC = evt->getCollection(itMcpCol->first);
 
     // 160722 Separate parent-daughter connection from the main loop to avoid crash with overlaid particles which have opposite order
     int id;
@@ -342,6 +345,9 @@ void LCIOStorer::SetEvent(lcio::LCEvent* evt) {
 
       lcfiplus::MCParticle *mcpNew = _mcpLCIORel2[mcp];
       mcpNew->setParent(parent);
+#if 1
+      if (parent) parent->addDaughter(mcpNew);
+#endif
 
       // add daughters to other MCPs
       if (mcp->getParents().size()>1) {
@@ -360,15 +366,17 @@ void LCIOStorer::SetEvent(lcio::LCEvent* evt) {
   map<string, pair<vector<lcfiplus::Track*> *, vector<lcfiplus::Neutral*> *> >::iterator itPfoCol;
   for (itPfoCol = _importPFOCols.begin(); itPfoCol != _importPFOCols.end(); itPfoCol ++) {
 
-    LCCollection* colPFO = evt->getCollection(itPfoCol->first);
-    PIDHandler *PID = new PIDHandler(evt->getCollection(itPfoCol->first)); 
-
+    lcio::LCCollection* colPFO = evt->getCollection(itPfoCol->first);
+    lcio::PIDHandler *PID = new lcio::PIDHandler(evt->getCollection(itPfoCol->first)); 
+#if 1
+std::cerr << "#### # of colPFO = " << colPFO->getNumberOfElements() << std::endl;
+#endif
     // looking for LCRelation
     vector<lcio::LCRelationNavigator*> navs;
     map<string, pair<string,string> >::iterator itRelCol;
     for (itRelCol = _importMCPFOLinkCols.begin(); itRelCol != _importMCPFOLinkCols.end(); itRelCol ++) {
       if (itRelCol->second.second == itPfoCol->first) {
-        navs.push_back(new LCRelationNavigator(evt->getCollection(itRelCol->first)));
+        navs.push_back(new lcio::LCRelationNavigator(evt->getCollection(itRelCol->first)));
       }
     }
     //cout << navs.size() << " relation found." << endl;
@@ -378,6 +386,9 @@ void LCIOStorer::SetEvent(lcio::LCEvent* evt) {
     for (int i=0; i<colPFO->getNumberOfElements(); ++i) {
       lcio::ReconstructedParticle* pfo = dynamic_cast<lcio::ReconstructedParticle*>( colPFO->getElementAt(i) );
       pfo_list.push_back(pfo);
+#if 0
+std::cerr << "#### pfo type = " << pfo->getType() << std::endl;
+#endif
     }
     // sort by energy order!
     sort(pfo_list.begin(),pfo_list.end(),energy_sort_pfo);
@@ -394,6 +405,9 @@ void LCIOStorer::SetEvent(lcio::LCEvent* evt) {
       for (unsigned int n=0; n<navs.size(); n++) {
         if (navs[n]->getRelatedToObjects(pfo).size()) {
           mcp = dynamic_cast<lcio::MCParticle*>(navs[n]->getRelatedToObjects(pfo)[0]);  // TODO [0] OK?
+#if 0
+ std::cerr << "#### mcp = " << mcp->getPDG() << ", pfo = " << pfo->getType() << std::endl;
+#endif
           mcpf = _mcpLCIORel2[mcp];
           break;
         }
@@ -424,12 +438,20 @@ void LCIOStorer::SetEvent(lcio::LCEvent* evt) {
       pmass.insert(map<int, double>::value_type( 321, 0.493677 ) );
       pmass.insert(map<int, double>::value_type( 2212, 0.938272 ) );
       
+#if 0
+std::cerr << "pfo charge = " << pfo->getCharge() << std::endl;
+#endif
       if (pfo->getCharge() != 0) {
+#if 0
+std::cerr << "pfo tracks = " << pfo->getTracks().size() << std::endl;
+#endif
         assert(not pfo->getTracks().empty());
 
         lcfiplus::Track* track = new lcfiplus::Track;
 
         track->setId(trkIdCounter++); // start from 0. 110927 suehara
+//cerr << "### LCIOStorer track->setMcp(mcpf)" << std::endl;
+//cerr << "### LCIOStorer mcpf = " << mcpf << std::endl;
         track->setMcp(mcpf);
 
         track->setCharge(pfo->getCharge());
@@ -437,11 +459,24 @@ void LCIOStorer::SetEvent(lcio::LCEvent* evt) {
         track->SetE(pfo->getEnergy());
         TVector3 pTrack(pfo->getMomentum());
         track->SetVect(pTrack);
+#if 0
+std::cerr << "break 1" << std::endl;
+#endif
 
 	//PIDs
 	try{
+//std::cerr << "pidAlgoName " << _pidAlgoName << std::endl;
+#if 0 // TEST
 	  int pidAlgoID = PID->getAlgorithmID(_pidAlgoName);
 	  //pdg value
+#if 0
+std::cerr << "pidAlgoID = " << pidAlgoID << std::endl;
+#endif
+#if 0
+std::cerr << "### LCIOStorer track pid : " << PID->getParticleID(pfo,pidAlgoID).getPDG() 
+<< ", pfo :" << pfo->getType() << std::endl;
+//<< ", mcp :" << track->getMcp()->getPDG() 
+#endif
 	  track->setPDG(PID->getParticleID(pfo,pidAlgoID).getPDG());
 	  //posterior probabilities for each particle type hypothesis
 	  int vecsize = PID->getParticleID(pfo,pidAlgoID).getParameters().size();
@@ -451,7 +486,10 @@ void LCIOStorer::SetEvent(lcio::LCEvent* evt) {
 
 	  //cal. corrected mass
 	  track->setCorrEnergy(pmass[PID->getParticleID(pfo,pidAlgoID).getPDG()]);
-	  track->swapEnergy();  //really temporal need flag...
+	  //track->swapEnergy();  //really temporal need flag...
+#else
+	  track->setPDG(pfo->getType());
+#endif
 	}catch(UTIL::UnknownAlgorithm e){
 	}
 	
@@ -491,6 +529,21 @@ void LCIOStorer::SetEvent(lcio::LCEvent* evt) {
           }
         }
 
+#if 0
+std::cerr << "LCIOStorer" << std::endl;
+std::cerr << "# of track state : " << trk->getTrackStates().size() << std::endl;
+for (int i = 0; i < trk->getTrackStates().size(); i++) {
+  std::cerr << "State " << i << std::endl;
+  std::cerr << "  D0 " << trk->getTrackStates()[i]->getD0() << std::endl;
+  std::cerr << "  Z0 " << trk->getTrackStates()[i]->getZ0() << std::endl;
+  std::cerr << "  Phi " << trk->getTrackStates()[i]->getPhi() << std::endl;
+  std::cerr << "  Omg " << trk->getTrackStates()[i]->getOmega() << std::endl;
+  std::cerr << "  Tanl " << trk->getTrackStates()[i]->getTanLambda() << std::endl;
+  const float* pos = trk->getTrackStates()[i]->getReferencePoint();
+  std::cerr << "  (x,y,z) = (" << pos[0] << ", " << pos[1] << ", " << pos[2] << std::endl;
+}
+#endif
+
         // check against NaN's
         assert( trk->getD0() == trk->getD0() );
         assert( trk->getZ0() == trk->getZ0() );
@@ -506,6 +559,8 @@ void LCIOStorer::SetEvent(lcio::LCEvent* evt) {
         par[lcfiplus::tpar::om] = trk->getOmega();
         par[lcfiplus::tpar::td] = trk->getTanLambda();
         track->setHelix(par);
+//const float* ref = trk->getReferencePoint();
+//std::cerr << "ref = (" << ref[0] << ", " << ref[1] << ", " << ref[2] << std::endl;
 
         // ... and the covariance matrix
         const vector<float>& cov = trk->getCovMatrix();
@@ -543,6 +598,22 @@ void LCIOStorer::SetEvent(lcio::LCEvent* evt) {
         //printf("rimh = %f\n",trkData.rimh);
 
         track->setCaloEdep(subE);
+#if 0
+const TrackerHitVec& trkhits = trk->getTrackerHits();
+std::cerr << " ##### TEST trkhits = " << trkhits.size() << std::endl;
+#endif
+#if 0
+//setInnermostHit(trk);
+  for (int i = 0; i < trk->getTrackStates().size(); i++) {
+    const TrackState* state = trk->getTrackStates()[i];
+    std::cerr << "#### TEST " << state->getLocation() << std::endl;
+    const float* sp = state->getReferencePoint();
+    std::cerr << "    state " << i << " : (x,y,z) = (" << sp[0] << ", " << sp[1] << ", " << sp[2] << ") " << std::endl;
+    TVector3 spv(sp); 
+    std::cerr << "spv.Mag() = " << spv.Mag() << " RadiusOfInnermostHit = " << trk->getRadiusOfInnermostHit() << std::endl;
+  }
+  std::cerr << "LCIOStorer : " << "trk->getX() = " << track->getX() << " trk->getY() = " << track->getY() << " trk->getZ() = " << track->getZ() << std::endl;
+#endif
 
         // register!
         itPfoCol->second.first->push_back(track);
@@ -698,11 +769,11 @@ void LCIOStorer::ReadJets(const char* jetname, vector<const Jet*>* lcficol, cons
 
   // looking for vertices to be added
 
-  LCRelationNavigator* nav = 0;
+  lcio::LCRelationNavigator* nav = 0;
   try {
     string rname = (vtxrelname ? vtxrelname : string(jetname) + "_rel");
     lcio::LCCollection* colrel = _event->getCollection(rname);
-    nav = new LCRelationNavigator(colrel);
+    nav = new lcio::LCRelationNavigator(colrel);
   } catch (lcio::DataNotAvailableException& e) {
     // just ignore relation
   }
@@ -753,7 +824,7 @@ void LCIOStorer::ReadJets(const char* jetname, vector<const Jet*>* lcficol, cons
       for (unsigned int na = 0; na < pidh.getAlgorithmIDs().size(); na++) {
         int algoid = pidh.getAlgorithmIDs()[na];
         string algoname = pidh.getAlgorithmName(algoid);
-        const StringVec& paramnames = pidh.getParameterNames(algoid);
+        const lcio::StringVec& paramnames = pidh.getParameterNames(algoid);
 
         const lcio::ParticleIDVec& pidv = lciojet->getParticleIDs();
         const lcio::ParticleID* pid = 0;
@@ -1080,9 +1151,15 @@ void LCIOStorer::WriteAllPIDs(lcio::LCCollection* lciocol, lcio::ReconstructedPa
   const map<string, Parameters>& parammap = lcfijet->params();
 
   map<string, Parameters>::const_iterator it;
+std::cerr << std::endl;
+std::cerr << std::endl;
+std::cerr << "#### LCIOStorer::WriteAllPIDs called" << std::endl;
   for (it = parammap.begin(); it != parammap.end(); it++) {
+std::cerr << "  " << it->first.c_str() << std::endl;
     WritePID(lciocol, lciojet, lcfijet, it->first.c_str());
   }
+std::cerr << std::endl;
+std::cerr << std::endl;
 
   /*
   if(parammap.size())
@@ -1226,7 +1303,10 @@ void LCIOStorer::SetColorSinglets(vector<MCParticle*>& mcps, vector<MCColorSingl
     }
   }
 }
-
+#if 0
+void LCIOStorer::setInnermostHit(lcfiplus::Track* trk) {
+}
+#endif
 void LCIOStorer::GetCallback(const char* name, const char* classname) {
   if (!_autoread)return;
   if (Event::Instance()->IsExist(name))return; // no-op since the collection has already been registered

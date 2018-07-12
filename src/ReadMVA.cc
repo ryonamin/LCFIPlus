@@ -34,6 +34,7 @@ void ReadMVA::init(Parameters* param) {
 
   _verbose = false;
 
+
   // get FTManager for variable registration
   int exportAllVars = param->get("FlavorTag.ExportAllVariables",0);
   FTManager& mgr = FTManager::getInstance();

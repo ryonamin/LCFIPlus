@@ -64,6 +64,7 @@ class VertexFinderTearDown {
       }
 
       worstChi2 = resultVertex->getChi2Track(worstTrack);
+//std::cerr << "###### VertexFinderTearDown.cc TEST Primary worstChi2 = " << worstChi2 << " (# of tracks = " << trackList.size() << ")"<< std::endl;
       if (worstChi2 > chiSquareThreshold) {
         trackList.remove(worstTrack);
         if (residual)

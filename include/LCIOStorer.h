@@ -99,6 +99,10 @@ class LCIOStorer : public TObject, public EventStoreObserver {
     return _pidAlgoName.c_str();
   }
 
+#if 1
+  void setInnermostHit(lcfiplus::Track*);
+#endif
+
   // callback function from EventStore
   virtual void GetCallback(const char* name, const char* classname);
 

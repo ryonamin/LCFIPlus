@@ -430,6 +430,9 @@ void VertexFinderSuehara::GetVertexList(list<const Track*>& tracks, const Vertex
   int ntrmax = (ntr-1) * ntr / 2;
 
   for (trkit1 = tracks.begin(); trkit1 != tracks.end(); trkit1 ++) {
+#if 0
+          std::cerr << (*trkit1) << " D0 = " << (*trkit1)->getD0() << " Z0 = " << (*trkit1)->getZ0() << " r_min = " << (*trkit1)->getRadiusOfInnermostHit()<< std::endl;
+#endif
     for (trkit2 = trkit1, trkit2 ++; trkit2 != tracks.end(); trkit2 ++) {
       nv ++;
       if (verbose) {
@@ -463,7 +466,6 @@ void VertexFinderSuehara::GetVertexList(list<const Track*>& tracks, const Vertex
 
       double chi2 = max(vtx->getChi2Track(*trkit1), vtx->getChi2Track(*trkit2));
       TVector3 vpos = vtx->getPos();
-
       if (chi2 < cfg.chi2thV0SelTrack && !VertexSelector().passesCut(vtx, cfg.v0selTrack,ip)) {
         //cout << "V0 found at ( " << vtx->getPos().x() << " " << vtx->getPos().y() << " " << vtx->getPos().z() << ") : 2 tracks removed." << endl;
         v0tracks.push_back(*trkit1);
@@ -482,10 +484,21 @@ void VertexFinderSuehara::GetVertexList(list<const Track*>& tracks, const Vertex
         if (verbose)
           cout << "Vertex accepted." << endl;
         Vertex* vtx2 = associateTracks(vtx, constVector(v0vtx), tracks, cfg);
+#if 0
+TVector3 vpos = vtx2->getPos();
+if(vpos.Mag()>300)  cout << "#### ( " << vtx->getPos().x() << " " << vtx->getPos().y() << " " << vtx->getPos().z() << ")" << " chi2 = " << chi2 << " (cfg.chi2th = " << cfg.chi2th << " )" << endl;
+#endif
+
         if (vtx2 != vtx) { // 3+ tracks
           delete vtx;
+#if 0
+if(vpos.Mag()>300) std::cerr << "#### This is going to be tr3+. " << std::endl;
+#endif
 	  tr3list.push_back(vtx2);
 	} else { // 2 tracks
+#if 0
+if(vpos.Mag()>300) std::cerr << "#### This is going to be tr2. " << std::endl;
+#endif
           tr2list.push_back(vtx);
         }
       } else { // bad vertex
@@ -534,6 +547,29 @@ void VertexFinderSuehara::GetVertexList(list<const Track*>& tracks, const Vertex
   if (verbose) {
     cerr << "Vertex produced. 3tr: " << tr3list.size() << ", 2tr: " << tr2list.size() << endl;
   }
+#if 0
+    cerr << "Vertex produced. 3tr: " << tr3list.size() << ", 2tr: " << tr2list.size() << endl;
+    for (vit = tr3list.begin(); vit != tr3list.end(); vit++) {
+      TVector3 vp = (*vit)->getPos();
+      if (vp.Mag()>300) {
+        std::cerr << " ## 3tr n = " <<  tr3list.size() << std::endl;
+        std::cerr << " x = " << vp.x() << " y = " << vp.y() << " z = " << vp.z() << std::endl;
+      }
+    }
+    for (vit = tr2list.begin(); vit != tr2list.end(); vit++) {
+      TVector3 vp = (*vit)->getPos();
+      if (vp.Mag()>300) {
+        std::cerr << " ## 2tr " << std::endl;
+        std::cerr << " x = " << vp.x() << " y = " << vp.y() << " z = " << vp.z() << std::endl;
+        const vector<const Track*>& trks = (*vit)->getTracks();
+        std::cerr << " # of tracks = " << trks.size() << std::endl;
+        vector<const Track*>::const_iterator titr;
+        for (titr=trks.begin();titr!=trks.end();titr++) {
+          std::cerr << (*titr) << " D0 = " << (*titr)->getD0() << " Z0 = " << (*titr)->getZ0() << " r_min = " << (*titr)->getRadiusOfInnermostHit()<< std::endl;
+        }
+      }
+    }
+#endif
 
   while (true) {
     // sort found vertices
@@ -1102,6 +1138,7 @@ vector<Vertex*> VertexFinderSuehara::makeSingleTrackVertices
     //if (!cfg.useBNess && track->E() < cfg.minEnergySingle)continue;
 
     // d0/z0 cut
+#if 0 //RY Test
     double d0 = track->getD0();
     double d0err = sqrt(track->getCovMatrix()[tpar::d0d0]);
     double z0 = track->getZ0();
@@ -1109,6 +1146,12 @@ vector<Vertex*> VertexFinderSuehara::makeSingleTrackVertices
 
     if (!cfg.useBNess && fabs(d0/d0err)<cfg.mind0SigSingle && fabs(z0/z0err)<cfg.minz0SigSingle) continue;
     if (cfg.useBNess && fabs(d0/d0err)<2.0 && fabs(z0/z0err)<2.0) continue;
+#else
+    double d0sig = algoSigProb::trackD0Significance(track,ip);
+    double z0sig = algoSigProb::trackZ0Significance(track,ip);
+    if (!cfg.useBNess && d0sig<cfg.mind0SigSingle && z0sig<cfg.minz0SigSingle) continue;
+    if (cfg.useBNess && d0sig<2.0 && z0sig<2.0) continue;
+#endif
 
     Helix hel(track);
 

@@ -17,7 +17,7 @@ namespace lcfiplus {
 void TrackNtuple::init(Parameters* param) {
   Algorithm::init(param);
 
-  _primvtxcolname = param->get("PrimaryVertexCollectionName",string("PrimaryVertex"));
+  _primvtxcolname = param->get("TrackNtuple.PrimaryVertexCollectionName",string("PrimaryVertex"));
   _jetcolname = param->get("TrackNtuple.JetCollectionName",string("VertexJets"));
   Event::Instance()->setDefaultPrimaryVertex(_primvtxcolname.c_str()); // backward compatibility
   _hitcutJprob = param->get("TrackNtuple.HitsCountForJointProbability",int(4));
@@ -25,7 +25,8 @@ void TrackNtuple::init(Parameters* param) {
   string filename = param->get("TrackNtuple.RootFileName",string("tracks.root"));
 
   // file open
-  _file = TFile::Open(filename.c_str(), "new");
+  //_file = TFile::Open(filename.c_str(), "new");
+  _file = TFile::Open(filename.c_str(), "RECREATE");
   if (!_file)throw(Exception("TrackNtuple: ROOT file open error! Failed if the file already exists."));
 
   _tree = new TNtuple("tracks","d0/z0 of tracks","sd0:sd0sig:sz0:sz0sig:jprobcut");

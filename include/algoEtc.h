@@ -16,10 +16,17 @@ void connectVerticesToJets(const JetVec& jets, const vector<Vertex*>& vtcs, vect
 vector<const Track*> extractTracks(VertexVec& vtx);
 double calcThrust( vector<TVector3>& list, TVector3& taxis );
 
+#if 0
 bool SimpleSecMuonFinder(const Track* tr, double d0sigth, double z0sigth, double maxpos, double mudepmin,
                          double ecaldepmin, double ecaldepmax, double hcaldepmin, double hcaldepmax, double maxclusterpertrackenergy = 10.);
 bool SimpleSecElectronFinder(const Track* tr, double d0sigth, double z0sigth, double maxpos, double emin,
                              double minfracecal, double minecalpertrackenergy, double maxecalpertrackenergy);
+#else
+bool SimpleSecMuonFinder(const Track* tr, double d0sigth, double z0sigth, double maxpos, double mudepmin,
+                         double ecaldepmin, double ecaldepmax, double hcaldepmin, double hcaldepmax, double maxclusterpertrackenergy = 10., const Vertex* pvtx = 0);
+bool SimpleSecElectronFinder(const Track* tr, double d0sigth, double z0sigth, double maxpos, double emin,
+                             double minfracecal, double minecalpertrackenergy, double maxecalpertrackenergy, const Vertex* pvtx = 0);
+#endif
 
 }
 }

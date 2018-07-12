@@ -46,6 +46,9 @@ class FlavorTag : public Algorithm {
   int _nhitsJointProbD0;
   int _nhitsJointProbZ0;
   int _nhitsMostSignificantTrack;
+#if 1
+  vector<Jet*>* _outputJets;   //!
+#endif
 
   ClassDef(FlavorTag,1);
 };

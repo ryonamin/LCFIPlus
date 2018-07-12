@@ -149,9 +149,11 @@ void BuildUpVertex::process() {
     delete (*_vertices)[n];
   _vertices->clear();
 
+#if 0 // move after obtaining primary vertex
   // cut bad tracks
   TrackVec& tracks = event->getTracks();
   TrackVec passedTracks = TrackSelector() (tracks, *_secVtxCfg);
+#endif
 
   //cout << "BuildUpVertex / track selection: " << passedTracks.size() << "/" << tracks.size() << " accepted." << endl;
 
@@ -169,6 +171,12 @@ void BuildUpVertex::process() {
     haveToGetNewVertex = true;
     primvtx = nullptr;
   }
+
+#if 1
+  // cut bad tracks
+  TrackVec& tracks = event->getTracks();
+  TrackVec passedTracks = TrackSelector() (tracks, *_secVtxCfg, primvtx);
+#endif
 
   VertexFinderSuehara::VertexFinderSueharaConfig cfg;
   cfg.chi2th = _chi2thsec;
@@ -644,6 +652,14 @@ void JetVertexRefiner::process() {
       singletracklist.insert(singletracklist.end(), jetVertices[j][1]->getTracks().begin(), jetVertices[j][1]->getTracks().end());
 
       Vertex* single = VertexFitterSimple_V()(singletracklist.begin(), singletracklist.end());
+#if 0
+std::cerr << "####### chi2 = " ; 
+for (int i = 0; i < singletracklist.size(); i++) {
+  double chi2 = single->getChi2Track(singletracklist[i]);
+  std::cerr << chi2 << " ";
+}
+std::cerr << std::endl;
+#endif
       if (single->getProb() > _oneVtxProbTh) {
         delete jetVertices[j][0];
         delete jetVertices[j][1];

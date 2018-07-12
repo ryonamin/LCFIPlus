@@ -95,6 +95,12 @@ void FTManager::closeFile() {
   } else {
     cout << "FTManager: no file was opened" << endl;
   }
+#if 1 // RY test // This is necessary to call destructor of FTAlgo.
+  for ( vector<FTAlgo*>::reverse_iterator iter = _algoList.rbegin(); iter != _algoList.rend(); ++iter ) {
+    FTAlgo* algo = *iter;
+    delete algo;
+  } 
+#endif
 }
 
 void FTManager::process(const Event* event, const Vertex* privtx, int nhitsJointProbD0, int nhitsJointProbZ0, int nhitsMostSignificantTrack, JetVec& jets) {

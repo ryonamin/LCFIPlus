@@ -584,6 +584,13 @@ class Track : public TLorentzVector {//, protected TrackData {//, public EventPo
   //BNess
   double _bness, _cness;
 
+#if 1 // test
+public:
+  float _x0;
+  float _y0;
+  float _z0;
+#endif
+
   ClassDef(lcfiplus::Track, 2);
 };
 

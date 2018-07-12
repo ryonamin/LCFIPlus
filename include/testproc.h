@@ -4,9 +4,15 @@
 #define testproc_h 1
 
 #include "lcfiplus.h"
+#include "TrackSelector.h"
 #include "TNtuple.h"
 #include "TNtupleD.h"
 #include "TH2D.h"
+
+#include <iostream>
+
+const int NMAXTRACKS = 300;
+const int NMAXVERTEXTRACKS = 100;
 
 namespace lcfiplus {
 
@@ -335,6 +341,70 @@ class TestAlgoV0 : public Algorithm {
     int mcpp2;
   };
   VtxData _data;
+};
+
+class CheckDistribution : public Algorithm {
+ public:
+  void init(Parameters* param);
+  void process();
+  void end();
+  void setDaughterTracks(const lcfiplus::MCParticle* mcp, std::vector<const lcfiplus::MCParticle*>& mcdaughters);
+  bool isNoVisibleDaughters(const lcfiplus::MCParticle* mcp);
+ private:
+  TFile* _file;
+  TTree* _entp; // Event data
+  TTree* _vntp; // Vertex data
+  TrackSelectorConfig* _secVtxCfg;
+  //double _r_fit;
+  //double _z_fit;
+  //double _r_ref;
+  //double _z_ref;
+  //double _r_mc;
+  //double _z_mc;
+  //double _innermosthit_r;
+  //int    _pid_mc;
+  //
+  class EventData
+  {
+    public:
+     // basic parameters
+     int nevt;
+     float trkseleff; // track selection efficiency
+     int ntrks;
+     int pid_tracks[NMAXTRACKS];
+     int nneutrals;
+     int pid_neutrals[NMAXTRACKS];
+  };
+  EventData _edata;
+
+  class VertexData
+  {
+    public:
+     // basic parameters
+     int nevt;
+     int nvtx; 
+     int vtx_index; 
+     int pdg; 
+     bool isFromP; // primary
+     bool isFromB;
+     bool isFromC;
+     bool isFromO; // other semi stables
+     bool isFromV0; // v0 
+     float x;
+     float y;
+     float z;
+     int    ntrk;
+     double trkchi2[NMAXVERTEXTRACKS];
+     double mass;
+     //int    pdgMCParentsOfTrkInVtx[NMAXVTXTRKS];
+     //double massMCParentsOfTrkInVtx[NMAXVTXTRKS];
+        
+  };
+  VertexData _vdata;
+
+  int _nEvt;
+  string _pvtxcolname;
+  ClassDef(CheckDistribution,1);
 };
 
 }

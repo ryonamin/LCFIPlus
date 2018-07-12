@@ -55,7 +55,10 @@ lcfiplus::Vertex* lcfiplus::findPrimaryVertex(TrackVec& tracks, double chi2, boo
   if (ret)
     ret->setPrimary(true);
 
-  if (ret == 0) return ip; // FIXME: this is safety procedure in case primary vertex is not found; need to confirm this is good behavior
+  if (ret == 0) {
+//std::cerr << "### Primary vertex is not found!" << std::endl;
+return ip; // FIXME: this is safety procedure in case primary vertex is not found; need to confirm this is good behavior
+}
 
   delete ip;
   return ret;

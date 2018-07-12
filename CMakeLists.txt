@@ -12,7 +12,7 @@ PROJECT( LCFIPlus )
 # project version
 SET( ${PROJECT_NAME}_VERSION_MAJOR 0 )
 SET( ${PROJECT_NAME}_VERSION_MINOR 6 )
-SET( ${PROJECT_NAME}_VERSION_PATCH 7 )
+SET( ${PROJECT_NAME}_VERSION_PATCH 8 )
 
 
 
@@ -39,7 +39,9 @@ INCLUDE_DIRECTORIES( SYSTEM ${LCFIVertex_INCLUDE_DIRS} )
 # left here for backwards compatibility
 INCLUDE_DIRECTORIES( SYSTEM ${LCFIVertex_ROOT}/vertex_lcfi ${LCFIVertex_ROOT}/boost )
 
-INCLUDE( ${ROOT_DICT_MACROS_FILE} )
+#INCLUDE( ${ROOT_DICT_MACROS_FILE} )
+INCLUDE( "${ILCUTIL_ROOT}/cmakemodules/MacroRootDict.cmake" )
+
 SET( ROOT_DICT_INPUT_HEADERS
 		${PROJECT_SOURCE_DIR}/include/lcfiplus.h
 		${PROJECT_SOURCE_DIR}/include/EventStore.h
@@ -54,6 +56,7 @@ SET( ROOT_DICT_INPUT_HEADERS
 		${PROJECT_SOURCE_DIR}/include/testproc.h
 		${PROJECT_SOURCE_DIR}/include/TrackNtuple.h
 		${PROJECT_SOURCE_DIR}/include/VertexMassRecovery.h
+		${PROJECT_SOURCE_DIR}/include/VertexNtuple.h
 		${PROJECT_SOURCE_DIR}/include/LinkDef.h
 )
 SET( ROOT_DICT_INCLUDE_DIRS ${Marlin_INCLUDE_DIRS} )

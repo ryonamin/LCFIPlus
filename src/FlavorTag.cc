@@ -704,7 +704,7 @@ class FtTrkMass : public FTAlgo {
     trsel.minZ0Sig = 5.;
     trsel.maxD0 = 2.;
     trsel.maxZ0 = 3.;
-    vector<const Track*> usedTracks = TrackSelector()(tracks, trsel);
+    vector<const Track*> usedTracks = TrackSelector()(tracks, trsel, _privtx);
 
     if (usedTracks.size() < 2)_result = 0.;
     else {
@@ -742,7 +742,7 @@ class FtTrkMass2 : public FTAlgo {
     trsel.minD0Z0Sig = 7.;
     trsel.maxD0 = 2.;
     trsel.maxZ0 = 3.;
-    vector<const Track*> usedTracks = TrackSelector()(tracks, trsel);
+    vector<const Track*> usedTracks = TrackSelector()(tracks, trsel, _privtx);
 
     if (usedTracks.size() < 2)_result = 0.;
     else {
@@ -786,7 +786,7 @@ class FtNSecTracks : public FTAlgo {
     trsel.minZ0Sig = 5.;
     trsel.maxD0 = 2.;
     trsel.maxZ0 = 3.;
-    vector<const Track*> usedTracks = TrackSelector()(tracks, trsel);
+    vector<const Track*> usedTracks = TrackSelector()(tracks, trsel, _privtx);
 
     _result = usedTracks.size();
   }
@@ -837,8 +837,13 @@ class FtNMuon : public FTAlgo {
     TrackVec tracks = (_useVertexTracks ? _jet->getAllTracks(true) : _jet->getTracks());
     _result = 0;
     for (unsigned int n=0; n<tracks.size(); n++) {
+#if 0
       if (algoEtc::SimpleSecMuonFinder(tracks[n], 5., 5., 5., -0.1, 0.2, 0.8, 1.5, 4., 0.5)
           || algoEtc::SimpleSecMuonFinder(tracks[n], 5., 5., 5., 0.05, 0., 10., 0., 10., 10.))
+#else
+      if (algoEtc::SimpleSecMuonFinder(tracks[n], 5., 5., 5., -0.1, 0.2, 0.8, 1.5, 4., 0.5, _privtx)
+          || algoEtc::SimpleSecMuonFinder(tracks[n], 5., 5., 5., 0.05, 0., 10., 0., 10., 10., _privtx))
+#endif
         _result += 1;
     }
   }
@@ -853,7 +858,11 @@ class FtNElectron : public FTAlgo {
     TrackVec tracks = (_useVertexTracks ? _jet->getAllTracks(true) : _jet->getTracks());
     _result = 0;
     for (unsigned int n=0; n<tracks.size(); n++) {
+#if 0
       if (algoEtc::SimpleSecElectronFinder(tracks[n], 5., 5., 5., 5., 0.98, 0.9, 1.15))
+#else
+      if (algoEtc::SimpleSecElectronFinder(tracks[n], 5., 5., 5., 5., 0.98, 0.9, 1.15, _privtx))
+#endif
         _result += 1;
     }
   }
@@ -1109,10 +1118,38 @@ class FtD0bProb : public FTAlgo {
         double ld0 = log10(fabs(tracks[n]->getD0()));
 
         prob *= FTManager::getInstance().getIPProbHolder()->_hd0[0]->GetBinContent(FTManager::getInstance().getIPProbHolder()->_hd0[0]->FindBin(ld0)) * 3.; // 3 = b,c,q, averaging effect
+//std::cerr << "n = " << n << " ld0 = " << ld0 << " " << FTManager::getInstance().getIPProbHolder()->_hd0[0]->GetBinContent(FTManager::getInstance().getIPProbHolder()->_hd0[0]->FindBin(ld0)) << " prob = " << prob << std::endl; 
       }
     }
-
+//std::cerr << "prob = " << prob << std::endl;
     _result = prob;
+  }
+};
+
+class FtD0bProb2 : public FTAlgo {
+ public:
+  FtD0bProb2() : FTAlgo("d0bprob2") {}
+  void process() {
+    double oneMinusP = 1.;
+    TrackVec tracks = _jet->getAllTracks(true);
+    //int nmultiply = 0;
+    for (unsigned int n=0; n<tracks.size(); n++) {
+      double d0sig = trackD0Significance(tracks[n], _privtx);
+      if ( d0sig > 5) {
+#if 0
+        double ld0 = log10(fabs(tracks[n]->getD0()));
+#else
+        bool updateFlt = true;
+        double ld0 = log10(trackPositionFromPrimaryVertex(tracks[n],_privtx,updateFlt).Perp());
+#endif
+
+        oneMinusP *= (1.-FTManager::getInstance().getIPProbHolder()->_hd0[0]->GetBinContent(FTManager::getInstance().getIPProbHolder()->_hd0[0]->FindBin(ld0))); 
+        //nmultiply++;
+      }
+    }
+    //if (nmultiply) _result = TMath::Power(prob,1./nmultiply); // average over # of secondary track candidates
+    //else _result = 0.; // No secondary track candidates.
+    _result = 1. - oneMinusP;
   }
 };
 
@@ -1128,10 +1165,39 @@ class FtD0cProb : public FTAlgo {
         double ld0 = log10(fabs(tracks[n]->getD0()));
 
         prob *= FTManager::getInstance().getIPProbHolder()->_hd0[1]->GetBinContent(FTManager::getInstance().getIPProbHolder()->_hd0[1]->FindBin(ld0)) * 3.; // 3 = b,c,q, averaging effect
+//std::cerr << "n = " << n << " ld0 = " << ld0 << " " << FTManager::getInstance().getIPProbHolder()->_hd0[1]->GetBinContent(FTManager::getInstance().getIPProbHolder()->_hd0[1]->FindBin(ld0)) << " prob = " << prob << std::endl; 
       }
     }
 
     _result = prob;
+  }
+};
+
+class FtD0cProb2 : public FTAlgo {
+ public:
+  FtD0cProb2() : FTAlgo("d0cprob2") {}
+  void process() {
+    double oneMinusP = 1.;
+    TrackVec tracks = _jet->getAllTracks(true);
+    //int nmultiply = 0;
+    for (unsigned int n=0; n<tracks.size(); n++) {
+      double d0sig = trackD0Significance(tracks[n], _privtx);
+      if ( d0sig > 5) {
+#if 0
+        double ld0 = log10(fabs(tracks[n]->getD0()));
+#else
+        bool updateFlt = true;
+        double ld0 = log10(trackPositionFromPrimaryVertex(tracks[n],_privtx,updateFlt).Perp());
+#endif
+
+        oneMinusP *= 1.-FTManager::getInstance().getIPProbHolder()->_hd0[1]->GetBinContent(FTManager::getInstance().getIPProbHolder()->_hd0[1]->FindBin(ld0)); 
+        //nmultiply++;
+      }
+    }
+
+    //if (nmultiply) _result = TMath::Power(prob,1./nmultiply); // average over # of secondary track candidates
+    //else _result = 0.; // No secondary track candidates.
+    _result = 1. - oneMinusP;
   }
 };
 
@@ -1154,6 +1220,35 @@ class FtD0qProb : public FTAlgo {
 
 //				cout << "prob = " << prob << endl;
     _result = prob;
+  }
+};
+
+class FtD0qProb2 : public FTAlgo {
+ public:
+  FtD0qProb2() : FTAlgo("d0qprob2") {}
+  void process() {
+    double oneMinusP = 1.;
+    TrackVec tracks = _jet->getAllTracks(true);
+    //int nmultiply = 0;
+    for (unsigned int n=0; n<tracks.size(); n++) {
+      double d0sig = trackD0Significance(tracks[n], _privtx);
+      if ( d0sig > 5) {
+#if 0
+        double ld0 = log10(fabs(tracks[n]->getD0()));
+#else
+        bool updateFlt = true;
+        double ld0 = log10(trackPositionFromPrimaryVertex(tracks[n],_privtx,updateFlt).Perp());
+#endif
+
+        oneMinusP *= 1.- FTManager::getInstance().getIPProbHolder()->_hd0[2]->GetBinContent(FTManager::getInstance().getIPProbHolder()->_hd0[2]->FindBin(ld0));
+        //nmultiply++;
+
+      }
+    }
+
+    //if (nmultiply) _result = TMath::Power(prob,1./nmultiply); // average over # of secondary track candidates
+    //else _result = 0.; // No secondary track candidates.
+    _result = 1. - oneMinusP;
   }
 };
 
@@ -1180,6 +1275,37 @@ class FtD0bProbSigned : public FTAlgo {
     }
 
     _result = prob;
+  }
+ private:
+  bool _useVertexTracks;
+};
+
+class FtD0bProbSigned2 : public FTAlgo {
+ public:
+  FtD0bProbSigned2(bool usevtxtracks = true) : FTAlgo(usevtxtracks ? "d0bprobsigned2" : "d0bprobsignednv2") {
+    _useVertexTracks = usevtxtracks;
+  }
+  void process() {
+    double prob = 1.;
+    TrackVec tracks = (_useVertexTracks ? _jet->getAllTracks(true) : _jet->getTracks());
+    int nmultiply = 0;
+    for (unsigned int n=0; n<tracks.size(); n++) {
+      double d0sig = trackD0Significance(tracks[n], _privtx);
+      if ( d0sig > 5) {
+        double sd0 = signedD0(tracks[n], _jet, _privtx, true);
+        if (sd0>0) {
+          double ld0 = log10(sd0);
+          prob *= FTManager::getInstance().getIPProbHolder()->_hd0p[0]->GetBinContent(FTManager::getInstance().getIPProbHolder()->_hd0p[0]->FindBin(ld0)); 
+        } else {
+          double ld0 = log10(-sd0);
+          prob *= FTManager::getInstance().getIPProbHolder()->_hd0n[0]->GetBinContent(FTManager::getInstance().getIPProbHolder()->_hd0n[0]->FindBin(ld0));
+        }
+        nmultiply++;
+      }
+    }
+
+    if (nmultiply) _result = TMath::Power(prob,1./nmultiply); // average over # of secondary track candidates
+    else _result = 0.; // No secondary track candidates.
   }
  private:
   bool _useVertexTracks;
@@ -1213,6 +1339,37 @@ class FtD0cProbSigned : public FTAlgo {
   bool _useVertexTracks;
 };
 
+class FtD0cProbSigned2 : public FTAlgo {
+ public:
+  FtD0cProbSigned2(bool usevtxtracks = true) : FTAlgo(usevtxtracks ? "d0cprobsigned2" : "d0cprobsignednv2") {
+    _useVertexTracks = usevtxtracks;
+  }
+  void process() {
+    double prob = 1.;
+    TrackVec tracks = (_useVertexTracks ? _jet->getAllTracks(true) : _jet->getTracks());
+    int nmultiply = 0;
+    for (unsigned int n=0; n<tracks.size(); n++) {
+      double d0sig = trackD0Significance(tracks[n], _privtx);
+      if ( d0sig > 5) {
+        double sd0 = signedD0(tracks[n], _jet, _privtx, true);
+        if (sd0>0) {
+          double ld0 = log10(sd0);
+          prob *= FTManager::getInstance().getIPProbHolder()->_hd0p[1]->GetBinContent(FTManager::getInstance().getIPProbHolder()->_hd0p[1]->FindBin(ld0));
+        } else {
+          double ld0 = log10(-sd0);
+          prob *= FTManager::getInstance().getIPProbHolder()->_hd0n[1]->GetBinContent(FTManager::getInstance().getIPProbHolder()->_hd0n[1]->FindBin(ld0)); 
+        }
+        nmultiply++;
+      }
+    }
+
+    if (nmultiply) _result = TMath::Power(prob,1./nmultiply); // average over # of secondary track candidates
+    else _result = 0.; // No secondary track candidates.
+  }
+ private:
+  bool _useVertexTracks;
+};
+
 class FtD0qProbSigned : public FTAlgo {
  public:
   FtD0qProbSigned(bool usevtxtracks = true) : FTAlgo(usevtxtracks ? "d0qprobsigned" : "d0qprobsignednv") {
@@ -1236,6 +1393,37 @@ class FtD0qProbSigned : public FTAlgo {
     }
 
     _result = prob;
+  }
+ private:
+  bool _useVertexTracks;
+};
+
+class FtD0qProbSigned2 : public FTAlgo {
+ public:
+  FtD0qProbSigned2(bool usevtxtracks = true) : FTAlgo(usevtxtracks ? "d0qprobsigned2" : "d0qprobsignednv2") {
+    _useVertexTracks = usevtxtracks;
+  }
+  void process() {
+    double prob = 1.;
+    TrackVec tracks = (_useVertexTracks ? _jet->getAllTracks(true) : _jet->getTracks());
+    int nmultiply = 0;
+    for (unsigned int n=0; n<tracks.size(); n++) {
+      double d0sig = trackD0Significance(tracks[n], _privtx);
+      if ( d0sig > 5) {
+        double sd0 = signedD0(tracks[n], _jet, _privtx, true);
+        if (sd0>0) {
+          double ld0 = log10(sd0);
+          prob *= FTManager::getInstance().getIPProbHolder()->_hd0p[2]->GetBinContent(FTManager::getInstance().getIPProbHolder()->_hd0p[2]->FindBin(ld0)); 
+        } else {
+          double ld0 = log10(-sd0);
+          prob *= FTManager::getInstance().getIPProbHolder()->_hd0n[2]->GetBinContent(FTManager::getInstance().getIPProbHolder()->_hd0n[2]->FindBin(ld0));
+        }
+        nmultiply++;
+      }
+    }
+
+    if (nmultiply) _result = TMath::Power(prob,1./nmultiply); // average over # of secondary track candidates
+    else _result = 0.; // No secondary track candidates.
   }
  private:
   bool _useVertexTracks;
@@ -1305,6 +1493,42 @@ class FtZ0bProb : public FTAlgo {
   bool _useVertexTracks;
 };
 
+class FtZ0bProb2 : public FTAlgo {
+ public:
+  FtZ0bProb2(bool usevtxtracks = true) : FTAlgo(usevtxtracks ? "z0bprob2" : "z0bprobnv2") {
+    _useVertexTracks = usevtxtracks;
+  }
+  void process() {
+    double prob = 1.;
+    TrackVec tracks = (_useVertexTracks ? _jet->getAllTracks(true) : _jet->getTracks());
+    int nmultiply = 0;
+    for (unsigned int n=0; n<tracks.size(); n++) {
+      double z0sig = trackZ0Significance(tracks[n], _privtx);
+      if ( z0sig > 5) {
+#if 0
+        double lz0 = log10(fabs(tracks[n]->getZ0()));
+#else
+        //TrackPocaXY pocaXY(tracks[n],_privtx);
+        //tracks[n]->setFlightLength( pocaXY.getFlightLength() );
+        //double z = tracks[n]->getZ();
+        //double z0 = fabs( z-_privtx->getZ() );
+        //double lz0 = log10(z0);
+        bool updateFlt = true;
+        double lz0 = log10(fabs(trackPositionFromPrimaryVertex(tracks[n],_privtx,updateFlt).Z()));
+#endif
+
+        prob *= FTManager::getInstance().getIPProbHolder()->_hz0[0]->GetBinContent(FTManager::getInstance().getIPProbHolder()->_hz0[0]->FindBin(lz0));
+        nmultiply++;
+      }
+    }
+
+    if (nmultiply) _result = TMath::Power(prob,1./nmultiply); // average over # of secondary track candidates
+    else _result = 0.; // No secondary track candidates.
+  }
+ private:
+  bool _useVertexTracks;
+};
+
 class FtZ0cProb : public FTAlgo {
  public:
   FtZ0cProb(bool usevtxtracks = true) : FTAlgo(usevtxtracks ? "z0cprob" : "z0cprobnv") {
@@ -1328,6 +1552,42 @@ class FtZ0cProb : public FTAlgo {
   bool _useVertexTracks;
 };
 
+class FtZ0cProb2 : public FTAlgo {
+ public:
+  FtZ0cProb2(bool usevtxtracks = true) : FTAlgo(usevtxtracks ? "z0cprob2" : "z0cprobnv2") {
+    _useVertexTracks = usevtxtracks;
+  }
+  void process() {
+    double prob = 1.;
+    TrackVec tracks = (_useVertexTracks ? _jet->getAllTracks(true) : _jet->getTracks());
+    int nmultiply = 0;
+    for (unsigned int n=0; n<tracks.size(); n++) {
+      double z0sig = trackZ0Significance(tracks[n], _privtx);
+      if ( z0sig > 5) {
+#if 0
+        double lz0 = log10(fabs(tracks[n]->getZ0()));
+#else
+        //TrackPocaXY pocaXY(tracks[n],_privtx);
+        //tracks[n]->setFlightLength( pocaXY.getFlightLength() );
+        //double z = tracks[n]->getZ();
+        //double z0 = fabs( z-_privtx->getZ() );
+        //double lz0 = log10(z0);
+        bool updateFlt = true;
+        double lz0 = log10(fabs(trackPositionFromPrimaryVertex(tracks[n],_privtx,updateFlt).Z()));
+#endif
+
+        prob *= FTManager::getInstance().getIPProbHolder()->_hz0[1]->GetBinContent(FTManager::getInstance().getIPProbHolder()->_hz0[1]->FindBin(lz0));
+        nmultiply++;
+      }
+    }
+
+    if (nmultiply) _result = TMath::Power(prob,1./nmultiply); // average over # of secondary track candidates
+    else _result = 0.; // No secondary track candidates.
+  }
+ private:
+  bool _useVertexTracks;
+};
+
 class FtZ0qProb : public FTAlgo {
  public:
   FtZ0qProb(bool usevtxtracks = true) : FTAlgo(usevtxtracks ? "z0qprob" : "z0qprobnv") {
@@ -1346,6 +1606,42 @@ class FtZ0qProb : public FTAlgo {
     }
 
     _result = prob;
+  }
+ private:
+  bool _useVertexTracks;
+};
+
+class FtZ0qProb2 : public FTAlgo {
+ public:
+  FtZ0qProb2(bool usevtxtracks = true) : FTAlgo(usevtxtracks ? "z0qprob2" : "z0qprobnv2") {
+    _useVertexTracks = usevtxtracks;
+  }
+  void process() {
+    double prob = 1.;
+    TrackVec tracks = (_useVertexTracks ? _jet->getAllTracks(true) : _jet->getTracks());
+    int nmultiply = 0;
+    for (unsigned int n=0; n<tracks.size(); n++) {
+      double z0sig = trackZ0Significance(tracks[n], _privtx);
+      if ( z0sig > 5) {
+#if 0
+        double lz0 = log10(fabs(tracks[n]->getZ0()));
+#else
+        //TrackPocaXY pocaXY(tracks[n],_privtx);
+        //tracks[n]->setFlightLength( pocaXY.getFlightLength() );
+        //double z = tracks[n]->getZ();
+        //double z0 = fabs( z-_privtx->getZ() );
+        //double lz0 = log10(z0);
+        bool updateFlt = true;
+        double lz0 = log10(fabs(trackPositionFromPrimaryVertex(tracks[n],_privtx,updateFlt).Z()));
+#endif
+
+        prob *= FTManager::getInstance().getIPProbHolder()->_hz0[2]->GetBinContent(FTManager::getInstance().getIPProbHolder()->_hz0[2]->FindBin(lz0));
+        nmultiply++;
+      }
+    }
+
+    if (nmultiply) _result = TMath::Power(prob,1./nmultiply); // average over # of secondary track candidates
+    else _result = 0.; // No secondary track candidates.
   }
  private:
   bool _useVertexTracks;
@@ -1632,6 +1928,164 @@ class FtNBNess : public FTAlgo {
   }
 };
 
+#if 1 // RY test
+class FtNtrkD0Sig5 : public FTAlgo {
+ public:
+  FtNtrkD0Sig5(bool usevtxtracks = true) : FTAlgo(usevtxtracks ? "ntrkd0sig5" : "ntrkd0sig5nv") {
+    _useVertexTracks = usevtxtracks;
+  }
+  void process() {
+    TrackVec tracks = (_useVertexTracks ? _jet->getAllTracks(true) : _jet->getTracks());
+    int nmultiply = 0;
+    for (unsigned int n=0; n<tracks.size(); n++) {
+      double d0sig = trackD0Significance(tracks[n], _privtx);
+      if ( d0sig > 5) {
+        nmultiply++;
+      }
+    }
+    _result = nmultiply;
+  }
+ private:
+  bool _useVertexTracks;
+};
+
+class FtNtrkZ0Sig5 : public FTAlgo {
+ public:
+  FtNtrkZ0Sig5(bool usevtxtracks = true) : FTAlgo(usevtxtracks ? "ntrkz0sig5" : "ntrkz0sig5nv") {
+    _useVertexTracks = usevtxtracks;
+  }
+  void process() {
+    TrackVec tracks = (_useVertexTracks ? _jet->getAllTracks(true) : _jet->getTracks());
+    int nmultiply = 0;
+    for (unsigned int n=0; n<tracks.size(); n++) {
+      double z0sig = trackZ0Significance(tracks[n], _privtx);
+      if ( z0sig > 5) {
+        nmultiply++;
+      }
+    }
+    _result = nmultiply;
+  }
+ private:
+  bool _useVertexTracks;
+};
+
+class FtD0 : public FTAlgo {
+ public:
+  FtD0() : FTAlgo("d0") {}
+  void process() {
+    TrackVec tracks = _jet->getAllTracks(true);
+    _result = 0.; 
+    for (unsigned int n=0; n<tracks.size(); n++) {
+      double d0sig = trackD0Significance(tracks[n], _privtx);
+      if ( d0sig > 5) {
+        _result = fabs(tracks[n]->getD0());
+      }
+    }
+  }
+};
+
+class FtZ0 : public FTAlgo {
+ public:
+  FtZ0() : FTAlgo("z0") {}
+  void process() {
+    TrackVec tracks = _jet->getAllTracks(true);
+    _result = 0.; 
+    for (unsigned int n=0; n<tracks.size(); n++) {
+      double z0sig = trackZ0Significance(tracks[n], _privtx);
+      if ( z0sig > 5) {
+        _result = fabs(tracks[n]->getZ0());
+      }
+    }
+  }
+};
+
+class FtJetTrackPIDs : public FTAlgo {
+ public:
+  FtJetTrackPIDs(string in) : FTAlgo("jettrackpids"),
+                              file(in) {}
+
+  ~FtJetTrackPIDs() { // To call this function, flavortag.cc needs to be changed.
+
+    // sorting according to index.
+    //map<int,string> outmap;
+    //map<string,float>::iterator itr;
+    //for (itr=tab.begin(); itr!=tab.end(); itr++) {
+    //   outmap.insert(map<int,string>::value_type(int(itr->second),itr->first));
+    //} 
+
+    // Writing lookup table.
+    ofstream ofile(file.c_str());
+    // header
+    ofile << setw(25) << left << "Index" << "PIDs" << endl;
+    //for (int i = 1; i < outmap.size(); i++) {
+    //  ofile << setw(10) << left << i << outmap[i] << hash<string>()(outmap[i]) << endl;
+    //}
+    map<size_t,string>::iterator itr;
+    for (itr=tab.begin(); itr!=tab.end(); itr++) {
+      ofile << setw(25) << left << itr->first << itr->second << endl;
+    }
+  }
+
+  void process(){
+
+    //TrackVec &tracks = _jet->getTracks(); 
+    VertexVec &vertices = _jet->getVertices(); // Vertices has only secondary tracks 
+    vector<const Track*> tracks; // secondary tracks
+    for (unsigned int i=0; i<vertices.size(); i++) {
+      tracks.insert(tracks.end(), vertices[i]->getTracks().begin(), vertices[i]->getTracks().end());
+    }
+    //VertexVec &vertices = _jet->getVerticesForFT();
+    //vector<const Track*> tracks;
+    //for (unsigned int i=0; i<vertices.size(); i++) {
+    //  if (vertices[i]->getPos().Mag()>0) {
+    //    cerr << "vertices[" << i << "]->getPos().Mag() = " << vertices[i]->getPos().Mag() << endl;
+    //    tracks.insert(tracks.end(), vertices[i]->getTracks().begin(), vertices[i]->getTracks().end());
+    //  }
+    //}
+    
+
+    map<int,int> pdgmap;
+    for(unsigned int i=0;i<tracks.size();i++){
+      int key = tracks[i]->getPDG();
+      if (pdgmap.count(key)) pdgmap[key]++;  
+      else pdgmap.insert(map<int,int>::value_type(key,1)); // new entry
+
+      //std::cerr << "Track PID = " << tracks[i]->getPDG() << std::endl;
+    }
+
+    map<int,int>::iterator itr;
+    stringstream pids;
+    for (itr=pdgmap.begin(); itr!=pdgmap.end(); itr++) {
+      //cerr << itr->first << " " << itr->second << endl;
+      for (int i = 0; i < itr->second; i++) {
+        if (pids.tellp()==0) pids << itr->first; 
+        else pids << ", " << itr->first; 
+      }
+    } 
+
+    _result = 0.;
+    if (pids.tellp()!=0) {
+      pids << ends;
+      //cerr << "process = " << process.str().data() << endl; 
+      //string key = pids.str().data();
+      size_t key = hash<string>()(pids.str());
+      _result = float(key);  
+      if (!tab.count(key)) {
+        //float newindex = tab.size() + 1.0;
+        //tab.insert(map<string,float>::value_type(key,newindex)); 
+        tab.insert(map<size_t,string>::value_type(key,pids.str())); 
+        //cerr << "pids = " << key << " index = " << newindex << endl; 
+      }
+    }
+  }
+
+ private:
+ //map<string, float> tab;
+ map<size_t, string> tab;
+ string file;
+};
+#endif
+
 void FTManager::initVars() {
   if (_initialized)return;
   _initialized = true;
@@ -1743,6 +2197,28 @@ void FTManager::initVars() {
   add( new FtZ0qProb(false));
   add( new FtZ0bProbIP());
   add( new FtZ0cProbIP());
+  // RY test
+  add( new FtD0bProb2());
+  add( new FtD0cProb2());
+  add( new FtD0qProb2());
+  add( new FtD0bProbSigned2(true));
+  add( new FtD0cProbSigned2(true));
+  add( new FtD0qProbSigned2(true));
+  add( new FtD0bProbSigned2(false));
+  add( new FtD0cProbSigned2(false));
+  add( new FtD0qProbSigned2(false));
+  add( new FtZ0bProb2(true));
+  add( new FtZ0cProb2(true));
+  add( new FtZ0qProb2(true));
+  add( new FtZ0bProb2(false));
+  add( new FtZ0cProb2(false));
+  add( new FtZ0qProb2(false));
+  add( new FtNtrkD0Sig5(true));
+  add( new FtNtrkZ0Sig5(true));
+  add( new FtNtrkD0Sig5(false));
+  add( new FtNtrkZ0Sig5(false));
+  add( new FtD0());
+  add( new FtZ0());
 
   //vertex mass recovery
   add( new FtCorrVtxMass1() ); 
@@ -1764,6 +2240,10 @@ void FTManager::initVars() {
   add( new FtBNess3() ); 
   add( new FtBNessMass() ); 
   add( new FtNBNess() ); 
+
+#if 1 //RY test
+  add( new FtJetTrackPIDs(_jettrackpids_fname) ); 
+#endif
 }
 
 void FlavorTag::init(Parameters* param) {
@@ -1772,6 +2252,10 @@ void FlavorTag::init(Parameters* param) {
   _primvtxcolname = param->get("PrimaryVertexCollectionName",string("PrimaryVertex"));
   _jetcolname = param->get("FlavorTag.JetCollectionName",string("VertexJets"));
   Event::Instance()->setDefaultPrimaryVertex(_primvtxcolname.c_str()); // backward compatibility
+#if 1
+  string jcolname = param->get("FlavorTag.OutputJetCollectionName",string("TaggedJets"));
+  Event::Instance()->Register(jcolname.c_str(), _outputJets, EventStore::PERSIST | EventStore::JET_WRITE_VERTEX);
+#endif
 
   _auxiliaryInfo = param->get("MakeNtuple.AuxiliaryInfo",int(-1));
 
@@ -1791,6 +2275,10 @@ void FlavorTag::init(Parameters* param) {
   //cout << "FlavorTag: Number of jet set to " << _nJet << endl;
 
   FTManager& mgr = FTManager::getInstance();
+#if 1 //RY test
+  string jettrackpids_fname = param->get("FlavorTag.JetTrackPIDsFileName",string("JetTrackPIDsLookupTable.txt"));
+  mgr.setJetTrackPidsFileName(jettrackpids_fname);
+#endif
   mgr.initVars();
 
 }
@@ -1817,6 +2305,12 @@ void FlavorTag::process() {
   mgr.setIPProbHolder(_holder);
 
   mgr.process(event, privtx, _nhitsJointProbD0, _nhitsJointProbZ0, _nhitsMostSignificantTrack, jets);
+#if 1
+  for (int i = 0; i<jets.size(); i++) {
+    Jet* jet = new Jet(*jets[i]);
+    _outputJets->push_back(jet);
+  }
+#endif
 }
 
 void FlavorTag::end() {

@@ -115,6 +115,9 @@ class FTManager {
     _aux = aux;
   }
 
+#if 1 //RY test
+  void setJetTrackPidsFileName(string in) { _jettrackpids_fname = in; }
+#endif
  private:
   void add(FTAlgo* v); // 121214 moved to private
   FTManager();
@@ -136,6 +139,10 @@ class FTManager {
   // variables for flavor tagging
   FtIPProbHolder* _holder;
   double _aux;
+
+#if 1 //RY test
+  string _jettrackpids_fname;
+#endif
 };
 
 // historgram holder for d0/z0 probability
@@ -156,6 +163,17 @@ class FtJProbR2;
 class FtJProbZ2;
 class FtJProbR25Sigma;
 class FtJProbZ25Sigma;
+#if 1 //RY test
+class FtD0bProb2;
+class FtD0cProb2;
+class FtD0qProb2;
+class FtD0bProbSigned2;
+class FtD0cProbSigned2;
+class FtD0qProbSigned2;
+class FtZ0bProb2;
+class FtZ0cProb2;
+class FtZ0qProb2;
+#endif
 
 class FtIPProbHolder {
   friend class FtD0bProb;
@@ -175,6 +193,17 @@ class FtIPProbHolder {
   friend class FtJProbZ2;
   friend class FtJProbR25Sigma;
   friend class FtJProbZ25Sigma;
+#if 1 //RY test
+  friend class FtD0bProb2;
+  friend class FtD0cProb2;
+  friend class FtD0qProb2;
+  friend class FtD0bProbSigned2;
+  friend class FtD0cProbSigned2;
+  friend class FtD0qProbSigned2;
+  friend class FtZ0bProb2;
+  friend class FtZ0cProb2;
+  friend class FtZ0qProb2;
+#endif
 
  public:
   FtIPProbHolder(const char* d0probfile, const char* z0probfile);

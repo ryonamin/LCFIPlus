@@ -19,6 +19,7 @@ class VertexFitterSimple {
 
     GeometryHandler* gh = GeometryHandler::Instance();
     if (pointConstraint) {
+
       Point* ip = new Point(pointConstraint);
       vector<PointBase*> tracks;
       if (!pointInitialOnly)
@@ -35,6 +36,22 @@ class VertexFitterSimple {
       double chi2 = -gh->PointFit(tracks, initial, result);
 
       TVector3 vresult = result->GetPos();
+#if 0
+      Point* resulttmp = new Point;
+      vector<Helix*> trackstmp;
+      int ntrackstmp = 0;
+      for (Iterator it = tracksBegin; it != tracksEnd; it++,ntracks++) {
+        trackstmp.push_back(new Helix(*it));
+      }
+      double chi2tmp = -gh->HelixPointFit(trackstmp, resulttmp);
+      TVector3 vresulttmp = resulttmp->GetPos();
+      if (abs(vresult.Z())<0.0001) 
+      std::cerr << "vresult.Z() = " << vresult.Z() << " : chi2 = " << chi2 << " vresulttmp.Z() = " << vresulttmp.Z() << " chi2 : = " << chi2tmp << std::endl;
+#endif
+#if 0
+std::cerr << "VertexFitterSimple.cc ##### fit point = (" << vresult.x() << ", " << vresult.y() << ", " << vresult.z() << ")" << std::endl;
+//if (vresult.Mag() > 300) std::cerr << "### vresult.Mag() = " << vresult.Mag() << std::endl; 
+#endif
       double cov[6];
       cov[Vertex::xx] = result->GetErr(0,0);
       cov[Vertex::xy] = result->GetErr(0,1);
@@ -73,6 +90,10 @@ class VertexFitterSimple {
       }
 
       delete result;
+#if 0
+      TVector3 vp = vtx->getPos();
+if (vp.Mag() > 300) std::cerr << "### vp.Mag() = " << vp.Mag() << std::endl; 
+#endif
       return vtx;
     }
 
@@ -103,9 +124,21 @@ class VertexFitterSimple {
     }
 
     Vertex* vtx = new Vertex(chi2, (ntracks > 1 ? TMath::Prob(chi2, ntracks*2-3) : 1), vresult.x(), vresult.y(), vresult.z(), cov, false);
+#if 0
+      TVector3 vp = vtx->getPos();
+if (vp.Mag() > 300) {
+      std::cerr << "### vp.Mag() = " << vp.Mag() << " chi2 = " << chi2 << std::endl; 
+      vresult.Print();
+}
+#endif
     for (Iterator it = tracksBegin; it != tracksEnd; it++, ntracks++) {
       Helix hel(*it);
       double ll = hel.LogLikelihood(vresult); // need to incorporate vertex error??
+#if 0
+if (vp.Mag() > 300) std::cerr << "L = " << ll << std::endl; 
+#else 
+//std::cerr << "vp.Mag() = " << vp.Mag() << " L = " << ll << std::endl; 
+#endif
       if (verbose)
         cout << "VertexFitterSimple: track loglikelihood is " << ll << endl;
 
