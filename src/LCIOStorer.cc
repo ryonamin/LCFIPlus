@@ -113,7 +113,7 @@ void LCIOStorer::InitMCPPFOCollections(const char* pfoColName, const char* mcCol
   if (!event->IsExist(pfoColName)) {
     event->Register<Track>(pfoColName,pTracks);
     event->Register<Neutral>(pfoColName,pNeutrals);
-#if 1
+#if 0
 std::cerr << "### LCIOStorer::InitMCPPFOCollections called" << std::endl;
 #endif
     _importPFOCols[pfoColName] = make_pair(pTracks, pNeutrals);
@@ -368,7 +368,7 @@ void LCIOStorer::SetEvent(lcio::LCEvent* evt) {
 
     lcio::LCCollection* colPFO = evt->getCollection(itPfoCol->first);
     lcio::PIDHandler *PID = new lcio::PIDHandler(evt->getCollection(itPfoCol->first)); 
-#if 1
+#if 0
 std::cerr << "#### # of colPFO = " << colPFO->getNumberOfElements() << std::endl;
 #endif
     // looking for LCRelation
@@ -1151,15 +1151,15 @@ void LCIOStorer::WriteAllPIDs(lcio::LCCollection* lciocol, lcio::ReconstructedPa
   const map<string, Parameters>& parammap = lcfijet->params();
 
   map<string, Parameters>::const_iterator it;
-std::cerr << std::endl;
-std::cerr << std::endl;
-std::cerr << "#### LCIOStorer::WriteAllPIDs called" << std::endl;
+//std::cerr << std::endl;
+//std::cerr << std::endl;
+//std::cerr << "#### LCIOStorer::WriteAllPIDs called" << std::endl;
   for (it = parammap.begin(); it != parammap.end(); it++) {
-std::cerr << "  " << it->first.c_str() << std::endl;
+//std::cerr << "  " << it->first.c_str() << std::endl;
     WritePID(lciocol, lciojet, lcfijet, it->first.c_str());
   }
-std::cerr << std::endl;
-std::cerr << std::endl;
+//std::cerr << std::endl;
+//std::cerr << std::endl;
 
   /*
   if(parammap.size())
