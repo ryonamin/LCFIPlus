@@ -21,13 +21,9 @@ class PointBase { // pure virtual point-base class
   virtual double LogLikelihood(const TVector3& p)const  = 0;
   virtual void LogLikelihoodDeriv(const TVector3& p,double* output)const  = 0;
   virtual ~PointBase() {}
-  enum FITFLAG { NOTUSED, PRIVTX, SECVTX };
+
  protected:
-  //PointBase() : _fitflag(DEFAULT) {}
-  PointBase(FITFLAG flag) : _fitflag(flag) {}
-  //void SetFlag(FITFLAG flag) { _fitflag = flag; }
-  FITFLAG GetFlag() const { return _fitflag; }
-  FITFLAG _fitflag;
+  PointBase() {}
 };
 
 class Point : public PointBase { // real 3D-point with error
@@ -38,20 +34,16 @@ class Point : public PointBase { // real 3D-point with error
   double LogLikelihood(const TVector3& p)const;
   void LogLikelihoodDeriv(const TVector3& p, double* output)const;
 
-  //Point() {}
-  Point(FITFLAG flag) : PointBase(flag) {}
-  //Point(const SVector3& pos, const SMatrixSym3& err) {
-  Point(const SVector3& pos, const SMatrixSym3& err, FITFLAG flag) : PointBase(flag) {
+  Point() {}
+  Point(const SVector3& pos, const SMatrixSym3& err) {
     _pos = pos;
     _err = err;
   }
-  //Point(const Point& ref) {
-  Point(const Point& ref, FITFLAG flag) : PointBase(flag) {
+  Point(const Point& ref) {
     _pos = ref._pos;
     _err = ref._err;
   }
-  Point(const Vertex* vtx, FITFLAG flag) ;
-  //Point(const Vertex* vtx, FITFLAG flag);
+  Point(const Vertex* vtx);
   ~Point() {}
 
   void SetPosErr(const SVector3& pos, const SMatrixSym3& err) {
@@ -141,13 +133,13 @@ class Helix : public PointBase { // parametrized point for helix
 
   double LongitudinalDeviation(const Vertex* ip, const Vertex* sec);
 
-  Helix(FITFLAG flag) : PointBase(flag) {}
-  Helix(const SVector5& hel, const SMatrixSym5& err, int charge, FITFLAG flag) : PointBase(flag) {
+  Helix() {}
+  Helix(const SVector5& hel, const SMatrixSym5& err, int charge) {
     _hel = hel, _err = err;
     _charge = charge;
   }
-  Helix(const Track* trk, FITFLAG flag) ;
-  Helix(const Helix& ref, FITFLAG flag) : PointBase(flag) {
+  Helix(const Track* trk);
+  Helix(const Helix& ref) {
     _hel = ref._hel;
     _err = ref._err;
     _charge = ref._charge;
@@ -194,14 +186,14 @@ class VertexLine : public PointBase { // line with error for IP-vertex line
   void LogLikelihoodDeriv(const TVector3& p, double* output)const;
   double Variance(const TVector3& p, double t)const;		// t-fixed version, internally used
 
-  VertexLine(FITFLAG flag) : PointBase(flag) {}
-  VertexLine(const Vertex* ip, const Vertex* secvtx, FITFLAG flag) : PointBase(flag) {
+  VertexLine() {}
+  VertexLine(const Vertex* ip, const Vertex* secvtx) {
     _ip = ip;
     _vertex = secvtx;
     _origin = _vertex->getPos();
     _unit = (_origin - _ip->getPos()).Unit();
   }
-  VertexLine(const TVector3& origin, const TVector3& dir, FITFLAG flag) : PointBase(flag) {
+  VertexLine(const TVector3& origin, const TVector3& dir) {
     _origin = origin;
     _unit = dir.Unit();
     _ip = 0;

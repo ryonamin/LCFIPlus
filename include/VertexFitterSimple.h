@@ -19,20 +19,19 @@ class VertexFitterSimple {
 
     GeometryHandler* gh = GeometryHandler::Instance();
     if (pointConstraint) {
-      Point* ip = new Point(pointConstraint,PointBase::PRIVTX);
+      Point* ip = new Point(pointConstraint);
       vector<PointBase*> tracks;
-      if (!pointInitialOnly) {
+      if (!pointInitialOnly)
         tracks.push_back(ip);
-      }
       int ntracks = 0;
       for (Iterator it = tracksBegin; it != tracksEnd; it++,ntracks++) {
-        tracks.push_back(new Helix(*it,PointBase::PRIVTX));
+        tracks.push_back(new Helix(*it));
       }
       if (verbose)
         cout << "VertexFitterSimple: number of tracks is " << ntracks << endl;
 
       TVector3 initial = pointConstraint->getPos();
-      Point* result = new Point(PointBase::NOTUSED);
+      Point* result = new Point;
       double chi2 = -gh->PointFit(tracks, initial, result);
 
       TVector3 vresult = result->GetPos();
@@ -61,7 +60,7 @@ class VertexFitterSimple {
 
       Vertex* vtx = new Vertex(chi2, TMath::Prob(chi2, ntracks*2-3), vresult.x(), vresult.y(), vresult.z(), cov, false);
       for (Iterator it = tracksBegin; it != tracksEnd; it++,ntracks++) {
-        Helix hel(*it,PointBase::PRIVTX);
+        Helix hel(*it);
         double ll = hel.LogLikelihood(vresult); // need to incorporate vertex error??
 
         if (verbose)
@@ -81,12 +80,12 @@ class VertexFitterSimple {
     vector<Helix*> tracks;
     int ntracks = 0;
     for (Iterator it = tracksBegin; it != tracksEnd; it++,ntracks++) {
-      tracks.push_back(new Helix(*it,PointBase::SECVTX));
+      tracks.push_back(new Helix(*it));
     }
     if (verbose)
       cout << "VertexFitterSimple: number of tracks is " << ntracks << endl;
 
-    Point* result = new Point(PointBase::NOTUSED);
+    Point* result = new Point;
     double chi2 = -gh->HelixPointFit(tracks, result);
 
     TVector3 vresult = result->GetPos();
@@ -105,7 +104,7 @@ class VertexFitterSimple {
 
     Vertex* vtx = new Vertex(chi2, (ntracks > 1 ? TMath::Prob(chi2, ntracks*2-3) : 1), vresult.x(), vresult.y(), vresult.z(), cov, false);
     for (Iterator it = tracksBegin; it != tracksEnd; it++, ntracks++) {
-      Helix hel(*it,PointBase::SECVTX);
+      Helix hel(*it);
       double ll = hel.LogLikelihood(vresult); // need to incorporate vertex error??
       if (verbose)
         cout << "VertexFitterSimple: track loglikelihood is " << ll << endl;
@@ -120,18 +119,18 @@ class VertexFitterSimple {
     return vtx;
   }
 
-  double getChi2(const Vertex* vtx, const Track* trk, int mode=1, PointBase::FITFLAG flag=PointBase::NOTUSED) {
+  double getChi2(const Vertex* vtx, const Track* trk, int mode=1) {
     // 110510 suehara for IPassoc study
     if (mode == 0) {
       // mode 0: no fit at all
-      Helix hel(trk,flag);
+      Helix hel(trk);
       TVector3 v = vtx->getPos();
       return -hel.LogLikelihood(v);
     } else if (mode == 1) {
       // mode 1: vertex treated as errored point
 
-      Point ptVtx(vtx,flag);
-      Helix hel(trk,flag);
+      Point ptVtx(vtx);
+      Helix hel(trk);
 
       vector<PointBase*> vpt;
       vpt.push_back(&ptVtx);
@@ -143,12 +142,12 @@ class VertexFitterSimple {
       // mode 2: vertex treated as track list
       vector<PointBase*> vpt;
       for (unsigned int n=0; n<vtx->getTracks().size(); n++) {
-        vpt.push_back(new Helix(vtx->getTracks()[n],flag));
+        vpt.push_back(new Helix(vtx->getTracks()[n]));
       }
-      vpt.push_back(new Helix(trk,flag));
+      vpt.push_back(new Helix(trk));
 
       GeometryHandler* gh = GeometryHandler::Instance();
-      Point ret(PointBase::NOTUSED);
+      Point ret;
       double ll = -gh->PointFit(vpt, vtx->getPos(), &ret);
 
       for (unsigned int n=0; n<vpt.size(); n++) {
@@ -157,7 +156,7 @@ class VertexFitterSimple {
       if (mode == 2) {
         return ll;
       } else {
-        Helix hel(trk,flag);
+        Helix hel(trk);
         return -hel.LogLikelihood(ret.GetPos());
       }
     }

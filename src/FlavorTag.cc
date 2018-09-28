@@ -816,7 +816,7 @@ class FtVtxLongitudinalDeviation : public FTAlgo {
         //  bpdg = (mcp->getSemiStableBParent() ? mcp->getSemiStableBParent()->getPDG() : 0);
         //}
 
-        Helix hel(tr,PointBase::SECVTX);
+        Helix hel(tr);
         double dev = hel.LongitudinalDeviation(_privtx,vtx);
         //cout << "LongitudinalDeviation: track " << i << ", cpdg " << cpdg << ", bpdg " << bpdg << ", dev " << dev << endl;
         devall += dev;
