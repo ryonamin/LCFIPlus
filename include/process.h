@@ -109,8 +109,7 @@ class JetClustering : public Algorithm {
   double _vsMaxDist;
   double _vsK0MassWidth;
   bool _outputVertexStoresVertex;
-  string _vpricolname;
-  string _vseccolname;
+  string _vcolname;
   int _maxYth;
 
   double _yaddVV;
