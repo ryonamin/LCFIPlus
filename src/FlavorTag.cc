@@ -704,7 +704,7 @@ class FtTrkMass : public FTAlgo {
     trsel.minZ0Sig = 5.;
     trsel.maxD0 = 2.;
     trsel.maxZ0 = 3.;
-    vector<const Track*> usedTracks = TrackSelector()(tracks, trsel, _privtx);
+    vector<const Track*> usedTracks = TrackSelector()(tracks, trsel);
 
     if (usedTracks.size() < 2)_result = 0.;
     else {
@@ -742,7 +742,7 @@ class FtTrkMass2 : public FTAlgo {
     trsel.minD0Z0Sig = 7.;
     trsel.maxD0 = 2.;
     trsel.maxZ0 = 3.;
-    vector<const Track*> usedTracks = TrackSelector()(tracks, trsel, _privtx);
+    vector<const Track*> usedTracks = TrackSelector()(tracks, trsel);
 
     if (usedTracks.size() < 2)_result = 0.;
     else {
@@ -786,7 +786,7 @@ class FtNSecTracks : public FTAlgo {
     trsel.minZ0Sig = 5.;
     trsel.maxD0 = 2.;
     trsel.maxZ0 = 3.;
-    vector<const Track*> usedTracks = TrackSelector()(tracks, trsel,_privtx);
+    vector<const Track*> usedTracks = TrackSelector()(tracks, trsel);
 
     _result = usedTracks.size();
   }
