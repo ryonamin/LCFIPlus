@@ -1000,7 +1000,7 @@ void LCIOStorer::WriteJets(const char* jetName, const char* newName, bool writeV
       }
       for (unsigned int nvtx = 0; nvtx < flajet->getVertices().size(); nvtx++) {
 #if 1
-        lcio::ReconstructedParticleImpl* lciosvtx = new lcio::ReconstructedParticleImpl;
+        lcio::ReconstructedParticleImpl* lciovtxrp = new lcio::ReconstructedParticleImpl;
         // make new vertex
         lcio::VertexImpl* lciovtx = new lcio::VertexImpl;
 #endif
@@ -1034,13 +1034,14 @@ void LCIOStorer::WriteJets(const char* jetName, const char* newName, bool writeV
 #if 0
           lciojet->addParticle(lciotr);
 #else
-          //lciosvtx->addParticle(lciotr);
-          lciovtx->setAssociatedParticle(lciorp);
+          lciovtxrp->addParticle(lciotr);
+          lciotr->setStartVertex(lciovtx);
 #endif
         }
 #if 1
-        lciojet->setStartVertex(lciovtx);
-        //lciojet->addParticle(lciosvtx);
+	lciovtxrp->setType(3); // 0: unknown 1: single 2:v0 3: compound 4:jet
+        lciovtx->setAssociatedParticle(lciorp);
+        lciojet->addParticle(lciovtxrp);
 #endif
       }
 
