@@ -999,14 +999,49 @@ void LCIOStorer::WriteJets(const char* jetName, const char* newName, bool writeV
         lciojet->addParticle(lcioneut);
       }
       for (unsigned int nvtx = 0; nvtx < flajet->getVertices().size(); nvtx++) {
+#if 1
+        lcio::ReconstructedParticleImpl* lciosvtx = new lcio::ReconstructedParticleImpl;
+        // make new vertex
+        lcio::VertexImpl* lciovtx = new lcio::VertexImpl;
+#endif
         const lcfiplus::Vertex* flavtx = flajet->getVertices()[nvtx];
+#if 1
+        lciovtx->setPrimary(flavtx->isPrimary());
+        float vpos[3] = {
+          static_cast<float>(flavtx->getX()),
+          static_cast<float>(flavtx->getY()),
+          static_cast<float>(flavtx->getZ())
+        };
+        lciovtx->setPosition(vpos);
+        // lcio vertex needs floats, not doubles
+        // using {} to limit scope of temporary
+        {
+          float destCov[6];
+          const double* sourceCov = flavtx->getCov();
+          for (int i=0; i<6; ++i) {
+            destCov[i] = static_cast<float>(sourceCov[i]);
+          }
+          lciovtx->setCovMatrix(destCov);
+        }
+        lciovtx->setChi2(flavtx->getChi2());
+        lciovtx->setProbability(flavtx->getProb());
+#endif
         // first, extract all vertex tracks
         for (unsigned int ntr = 0; ntr < flavtx->getTracks().size(); ntr++) {
           const lcfiplus::Track* flatr = flavtx->getTracks()[ntr];
           lcio::ReconstructedParticle* lciotr = _trackLCIORel[const_cast<lcfiplus::Track*>(flatr)];
           charge += flatr->getCharge();
+#if 0
           lciojet->addParticle(lciotr);
+#else
+          //lciosvtx->addParticle(lciotr);
+          lciovtx->setAssociatedParticle(lciorp);
+#endif
         }
+#if 1
+        lciojet->setStartVertex(lciovtx);
+        //lciojet->addParticle(lciosvtx);
+#endif
       }
 
       const TLorentzVector& lv = *flajet;
