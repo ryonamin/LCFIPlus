@@ -15,6 +15,8 @@ SET( ${PROJECT_NAME}_VERSION_MINOR 6 )
 SET( ${PROJECT_NAME}_VERSION_PATCH 9 )
 
 
+#SET( CMAKE_CXX_FLAGS "-g -O0 ${CMAKE_CXX_FLAGS}" )
+
 
 ### DEPENDENCIES ############################################################
 

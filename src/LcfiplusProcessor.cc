@@ -27,7 +27,7 @@ LcfiplusProcessor aLcfiplusProcessor ;
 LCIOStorer* LcfiplusProcessor::_lcio = 0;
 
 LcfiplusProcessor::LcfiplusProcessor() : Processor("LcfiplusProcessor") {
-
+#if 1
   _inInit = false;
   _printPeriod = 0;
 
@@ -60,7 +60,7 @@ LcfiplusProcessor::LcfiplusProcessor() : Processor("LcfiplusProcessor") {
   registerOptionalParameter("BeamSizeY", "Bunch size in the Y direction [mm]", _beamSizeY, float(5.7e-6));
   registerOptionalParameter("BeamSizeZ", "Bunch size in the Z direction [mm]", _beamSizeZ, float(9.13e-2));
   
-
+#endif
   // ROOT object
   /*	int argc = 0;
   	if(gROOT->GetApplication() == 0){
@@ -69,6 +69,7 @@ LcfiplusProcessor::LcfiplusProcessor() : Processor("LcfiplusProcessor") {
   		SLM << "TApplication created." << endl;
   	}
   */
+std::cerr << "LcfiplusProcessor constructor called. " << this << std::endl;
 }
 
 LcfiplusProcessor::~LcfiplusProcessor() {
@@ -78,10 +79,11 @@ LcfiplusProcessor::~LcfiplusProcessor() {
   		delete gROOT->GetApplication();
   	}
   */
+std::cerr << "LcfiplusProcessor destructor called. " << this  << std::endl;
 }
 
 void LcfiplusProcessor::init() {
-
+#if 1
   try {
 
     streamlog_out(DEBUG) << "   init called  "
@@ -204,6 +206,7 @@ void LcfiplusProcessor::init() {
     streamlog_out(ERROR) << e->what() << endl;
     throw (marlin::StopProcessingException(this));
   }
+#endif
 }
 
 void LcfiplusProcessor::processRunHeader( LCRunHeader* /*run*/) {
@@ -212,7 +215,7 @@ void LcfiplusProcessor::processRunHeader( LCRunHeader* /*run*/) {
 }
 
 void LcfiplusProcessor::processEvent( LCEvent* evt ) {
-
+#if 1
   if (_printPeriod && _nEvt % _printPeriod == 0)
     cout << "processEvent: event # " << _nEvt << endl;
 
@@ -262,6 +265,7 @@ void LcfiplusProcessor::processEvent( LCEvent* evt ) {
     streamlog_out(ERROR) << e->what() << endl;
     throw (marlin::StopProcessingException(this));
   }
+#endif
 }
 
 
@@ -271,13 +275,13 @@ void LcfiplusProcessor::check( LCEvent* /*evt*/ ) {
 
 
 void LcfiplusProcessor::end() {
-
   for (unsigned int i=0; i<_algos.size(); i++) {
     _algos[i]->end();
   }
 
+#if 1
   Event::Instance()->ClearObjects();
-
+#endif
   std::cout << "LcfiplusProcessor::end()  " << name()
             << " processed " << _nEvt << " events in " << _nRun << " runs "
             << std::endl ;

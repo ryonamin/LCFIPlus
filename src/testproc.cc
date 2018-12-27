@@ -1476,6 +1476,21 @@ void VertexAnalysis::end() {
   _file->Close();
 }
 
-
+#if 1
+void MyAnalysis::init(Parameters* param) {
+  Algorithm::init(param);
+  //_privtxname = param->get("PrimaryVertexCollectionName",string("PrimaryVertex"));
+  //_secvtxname = param->get("SecondaryVertexCollectionName",string("BuildUpVertex"));
+  std::cerr << "init called." << std::endl;
 }
 
+void MyAnalysis::process() {
+  std::cerr << "process called." << std::endl;
+}
+
+void MyAnalysis::end() {
+  std::cerr << "end called." << std::endl;
+}
+#endif
+
+}

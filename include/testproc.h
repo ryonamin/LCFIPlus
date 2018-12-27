@@ -337,6 +337,16 @@ class TestAlgoV0 : public Algorithm {
   VtxData _data;
 };
 
+#if 1
+class MyAnalysis : public Algorithm {
+  public:
+    MyAnalysis(){}
+    ~MyAnalysis(){}
+    void init(Parameters* param);
+    void process();
+    void end();
+};
+#endif
 }
 
 #endif
