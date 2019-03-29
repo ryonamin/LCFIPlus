@@ -48,6 +48,7 @@
 #pragma link C++ class lcfiplus::FlavtagReader;
 #pragma link C++ class lcfiplus::VertexAnalysis;
 #pragma link C++ class lcfiplus::TestAlgoV0;
+#pragma link C++ class lcfiplus::MyAnalysis;
 
 #endif
 

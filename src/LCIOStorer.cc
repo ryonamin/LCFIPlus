@@ -317,6 +317,12 @@ void LCIOStorer::SetEvent(lcio::LCEvent* evt) {
       lcfiplus::MCParticle* mcpNew = new MCParticle(id, mcp->getPDG(), 0, mcp->getCharge(),
           TLorentzVector(TVector3(mcp->getMomentum()),mcp->getEnergy()), TVector3(v));
 
+#if 1
+      mcpNew->setFlag(mcp->getSimulatorStatus());
+      //if (mcp->isOverlay()) std::cerr << "mcp->isOverlay() = true." << std::endl;
+      //if (mcpNew->getFlag() & (1<<23)) std::cerr << "### Overlay" << std::endl;
+#endif
+
       // add to MCP list
       itMcpCol->second->push_back(mcpNew);
 
@@ -386,18 +392,48 @@ void LCIOStorer::SetEvent(lcio::LCEvent* evt) {
     unsigned int trkIdCounter(0);
     unsigned int neutIdCounter(0);
     // main loop for PFO
-    for (unsigned int n=0; n<pfo_list.size(); ++n ) {
-      lcio::ReconstructedParticle* pfo = pfo_list[n];
+    for (unsigned int ipfo=0; ipfo<pfo_list.size(); ++ipfo ) {
+      lcio::ReconstructedParticle* pfo = pfo_list[ipfo];
       lcio::MCParticle* mcp = NULL;
       lcfiplus::MCParticle* mcpf = NULL;
 
       // looking for MCParticle
       for (unsigned int n=0; n<navs.size(); n++) {
+#if 1
+        double trkwmax = 0.;
+        int    trkindex = 0;
+        double calwmax = 0.;
+        int    calindex = 0;
+        for (unsigned int i=0; i<navs[n]->getRelatedToWeights(pfo).size(); i++) {
+          int weight = navs[n]->getRelatedToWeights(pfo)[i];
+          double trkw = double((weight%10000)/1000.);
+          double calw = double((weight/10000)/1000.);
+          if (trkwmax<trkw) {
+             trkwmax = trkw;
+             trkindex = i;
+          }
+          if (calwmax<calw) {
+             calwmax = calw;
+             calindex = i;
+          }
+        }
+        int bestIndex = 0;
+        if (fabs(pfo->getCharge())>0.) bestIndex = trkindex;
+        else                           bestIndex = calindex; 
+
+        if (navs[n]->getRelatedToObjects(pfo).size()) {
+          mcp = dynamic_cast<lcio::MCParticle*>(navs[n]->getRelatedToObjects(pfo)[bestIndex]);
+          //std::cerr << "  bestIndex = " << bestIndex << " " <<  mcp->getPDG() << std::endl; 
+          mcpf = _mcpLCIORel2[mcp];
+          break;
+        }
+#else
         if (navs[n]->getRelatedToObjects(pfo).size()) {
           mcp = dynamic_cast<lcio::MCParticle*>(navs[n]->getRelatedToObjects(pfo)[0]);  // TODO [0] OK?
           mcpf = _mcpLCIORel2[mcp];
           break;
         }
+#endif
       }
 
       // find clusters

@@ -669,7 +669,6 @@ const MCParticle* MCParticle::findDauForDecay() const {
       return dau;
     }
   }
-
   // look at grand daughters if the immediate daughter is unstable
   // this will actually iterate until we find the first stable particle
   for (unsigned int i=0; i<_dau.size(); ++i) {
@@ -677,7 +676,11 @@ const MCParticle* MCParticle::findDauForDecay() const {
     //printf("  calling findDauForDecay for dau %d\n", dau->getPDG());
     const MCParticle* dautmp = dau->findDauForDecay();
     if (dautmp != dau) {
+#if 0
       _dauForDecay = dautmp;
+#else
+      _dauForDecay = dau;
+#endif
       return _dauForDecay;
     }
   }

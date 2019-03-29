@@ -653,10 +653,10 @@ class MCParticle : public TLorentzVector {
  public:
 
   //ctor/dtors ////////////////////////////////////////////////////////
-  MCParticle(int id, int pdg, MCParticle* parent, double charge, const TLorentzVector& p, const TVector3& v) {
+  MCParticle(int id, int pdg, MCParticle* parent, double charge, const TLorentzVector& p, const TVector3& v) : _dauForDecay(0) {
     Init(id, pdg, parent, charge, p, v);
   }
-  MCParticle() {}
+  MCParticle() : _id(0), _pdg(0), _charge(0.), _parent(0), _dauForDecay(0) {}
   ~MCParticle() {}
 
   // initialization: non-const parent is needed because of adding me to the daughter list
@@ -741,6 +741,10 @@ class MCParticle : public TLorentzVector {
   double getOmega()const;
   double getTanLambda()const;
 
+  // flag
+  void setFlag(int in) { _flag = in; }
+  int  getFlag() const { return _flag; }
+
  private:
   // basic properties
   int _id;
@@ -752,6 +756,9 @@ class MCParticle : public TLorentzVector {
   vector<const lcfiplus::MCParticle*> _dau;
 
   mutable const MCParticle* _dauForDecay; //! cached object
+
+  // status flag
+  int _flag;
 
   ClassDef(lcfiplus::MCParticle, 2);
 };

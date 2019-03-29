@@ -1,5 +1,8 @@
 #include <string>
 
+#include "lcio.h"
+#include "EVENT/MCParticle.h"
+#include "IMPL/MCParticleImpl.h"
 #include "TFile.h"
 #include "TNtuple.h"
 #include "TNtupleD.h"
@@ -1477,20 +1480,1084 @@ void VertexAnalysis::end() {
 }
 
 #if 1
+//const int MyAnalysis::Blist[] = { 511, 521, 531, 541, 5122, 5132, 5232, 5332};
+//const int MyAnalysis::Clist[] = { 411, 421, 431, 4122, 4132, 4232, 4332};
+//const int MyAnalysis::Olist[] = { 11, 13, 15, 22, 130, 211, 310, 321, 2112, 2212, 3112, 3122, 3212, 3222, 3312, 3322, 3334 };
+//const int MyAnalysis::V0list[] = { 22, 310, 3122 };
+std::vector<int> MyAnalysis::Blist = { 511, 521, 531, 541, 5122, 5132, 5232, 5332};
+std::vector<int> MyAnalysis::Clist = { 411, 421, 431, 4122, 4132, 4232, 4332};
+std::vector<int> MyAnalysis::Olist = { 11, 13, 15, 22, 130, 211, 310, 321, 2112, 2212, 3112, 3122, 3212, 3222, 3312, 3322, 3334 };
+std::vector<int> MyAnalysis::V0list = { 22, 310, 3122 };
+const float MyAnalysis::aSmallNumber = 0.001;
+
 void MyAnalysis::init(Parameters* param) {
   Algorithm::init(param);
-  //_privtxname = param->get("PrimaryVertexCollectionName",string("PrimaryVertex"));
-  //_secvtxname = param->get("SecondaryVertexCollectionName",string("BuildUpVertex"));
+  _privtxname = param->get("PrimaryVertexCollectionName",string("PrimaryVertex"));
+  _secvtxname = param->get("SecondaryVertexCollectionName",string("BuildUpVertex"));
+  _v0vtxname = param->get("V0VertexCollectionName",string("BuildUpVertex_V0"));
+  _nEvt = 1;
+  string filename = param->get("OutputRootFile",string("MyAnalysis_output.root"));
+  _file = new TFile(filename.c_str(),"RECREATE");
+          _trktree = new TTree("VertexTrack","Vertex track tree");
+	  _trktree->Branch("nevt"              , &_evdata.nevt               , "nevt/I"              );
+	  _trktree->Branch("ipTruthx"          , &_evdata.ipTruthx           , "ipTruthx"            );
+	  _trktree->Branch("ipTruthy"          , &_evdata.ipTruthy           , "ipTruthy"            );
+	  _trktree->Branch("ipTruthz"          , &_evdata.ipTruthz           , "ipTruthz"            );
+	  _trktree->Branch("mcx_vtx"           , &_trkdata.mcx_vtx           , "mcx_vtx"             );
+	  _trktree->Branch("mcy_vtx"           , &_trkdata.mcy_vtx           , "mcy_vtx"             );
+	  _trktree->Branch("mcz_vtx"           , &_trkdata.mcz_vtx           , "mcz_vtx"             );
+	  _trktree->Branch("mcx_evtx"          , &_trkdata.mcx_evtx          , "mcx_evtx"            );
+	  _trktree->Branch("mcy_evtx"          , &_trkdata.mcy_evtx          , "mcy_evtx"            );
+	  _trktree->Branch("mcz_evtx"          , &_trkdata.mcz_evtx          , "mcz_evtx"            );
+	  _trktree->Branch("mce"               , &_trkdata.mce               , "mce/D"               );
+	  _trktree->Branch("mcp"               , &_trkdata.mcp               , "mcp/D"               );
+	  _trktree->Branch("mcpt"              , &_trkdata.mcpt              , "mcpt/D"              );
+	  _trktree->Branch("mcpx"              , &_trkdata.mcpx              , "mcpx/D"              );
+	  _trktree->Branch("mcpy"              , &_trkdata.mcpy              , "mcpy/D"              );
+	  _trktree->Branch("mcpz"              , &_trkdata.mcpz              , "mcpz/D"              );
+	  _trktree->Branch("mcpdg"             , &_trkdata.mcpdg             , "mcpdg/I"             );
+	  _trktree->Branch("mccostheta"        , &_trkdata.mccostheta        , "mccostheta/D"        );
+	  _trktree->Branch("mcvpdg"            , &_trkdata.mcvpdg            , "mcvpdg/I"            );
+	  _trktree->Branch("mcve"              , &_trkdata.mcve              , "mcve/D"              );
+	  _trktree->Branch("mcvp"              , &_trkdata.mcvp              , "mcvp/D"              );
+	  _trktree->Branch("mcvpt"             , &_trkdata.mcvpt             , "mcvpt/D"             );
+	  _trktree->Branch("mcvpx"             , &_trkdata.mcvpx             , "mcvpx/D"             );
+	  _trktree->Branch("mcvpy"             , &_trkdata.mcvpy             , "mcvpy/D"             );
+	  _trktree->Branch("mcvpz"             , &_trkdata.mcvpz             , "mcvpz/D"             );
+	  _trktree->Branch("mcvcostheta"       , &_trkdata.mcvcostheta       , "mcvcostheta/D"       );
+	  _trktree->Branch("isFromP"           , &_trkdata.isFromP           , "isFromP/I"           );
+	  _trktree->Branch("isFromB"           , &_trkdata.isFromB           , "isFromB/I"           );
+	  _trktree->Branch("isFromC"           , &_trkdata.isFromC           , "isFromC/I"           );
+	  _trktree->Branch("isFromO"           , &_trkdata.isFromO           , "isFromO/I"           );
+	  _trktree->Branch("isFromBmbkg"       , &_trkdata.isFromBmbkg       , "isFromBmbkg/O"       );
+	  _trktree->Branch("rce"               , &_trkdata.rce               , "rce/D"               );
+	  _trktree->Branch("rcp"               , &_trkdata.rcp               , "rcp/D"               );
+	  _trktree->Branch("rcpt"              , &_trkdata.rcpt              , "rcpt/D"              );
+	  _trktree->Branch("rcpx"              , &_trkdata.rcpx              , "rcpx/D"              );
+	  _trktree->Branch("rcpy"              , &_trkdata.rcpy              , "rcpy/D"              );
+	  _trktree->Branch("rcpz"              , &_trkdata.rcpz              , "rcpz/D"              );
+	  _trktree->Branch("rccostheta"        , &_trkdata.rccostheta        , "rccostheta/D"        );
+	  _trktree->Branch("d0"                , &_trkdata.d0                , "d0/D"                );
+	  _trktree->Branch("d0err"             , &_trkdata.d0err             , "d0err/D"             );
+	  _trktree->Branch("phi"               , &_trkdata.phi               , "phi/D"               );
+	  _trktree->Branch("phierr"            , &_trkdata.phierr            , "phierr/D"            );
+	  _trktree->Branch("omg"               , &_trkdata.omg               , "omg/D"               );
+	  _trktree->Branch("omgerr"            , &_trkdata.omgerr            , "omgerr/D"            );
+	  _trktree->Branch("z0"                , &_trkdata.z0                , "z0/D"                );
+	  _trktree->Branch("z0err"             , &_trkdata.z0err             , "z0err/D"             );
+	  _trktree->Branch("tanl"              , &_trkdata.tanl              , "tanl/D"              );
+	  _trktree->Branch("tanlerr"           , &_trkdata.tanlerr           , "tanlerr/D"           );
+	  _trktree->Branch("isAssociatedToPvtx", &_trkdata.isAssociatedToPvtx, "isAssociatedToPvtx/O");
+	  _trktree->Branch("isAssociatedToSvtx", &_trkdata.isAssociatedToSvtx, "isAssociatedToSvtx/O");
+	  _trktree->Branch("isCorrectVertex"   , &_trkdata.isCorrectVertex   , "isCorrectVertex/O"   );
+	  _trktree->Branch("isCorrectDChain"   , &_trkdata.isCorrectDChain   , "isCorrectDChain/O"   );
+          _trktree->Branch("distancePvtxToSvtx", &_trkdata.distancePvtxToSvtx, "distancePvtxToSvtx"  );
+
+          _pvtxtree = new TTree("PrimaryVertex","Primary Vertex tree");
+	  _pvtxtree->Branch("nevt"       , &_evdata.nevt         , "nevt/I"      );
+	  _pvtxtree->Branch("rcx"        , &_vtxdata.rcx         , "rcx"         );
+	  _pvtxtree->Branch("rcy"        , &_vtxdata.rcy         , "rcy"         );
+	  _pvtxtree->Branch("rcz"        , &_vtxdata.rcz         , "rcz"         );
+	  _pvtxtree->Branch("rcpt"       , &_vtxdata.rcpt        , "rcpt"        );
+	  _pvtxtree->Branch("rcpx"       , &_vtxdata.rcpx        , "rcpx"        );
+	  _pvtxtree->Branch("rcpy"       , &_vtxdata.rcpy        , "rcpy"        );
+	  _pvtxtree->Branch("rcpz"       , &_vtxdata.rcpz        , "rcpz"        );
+	  _pvtxtree->Branch("rce"        , &_vtxdata.rce         , "rce"         );
+	  _pvtxtree->Branch("rcp"        , &_vtxdata.rcp         , "rcp"         );
+	  _pvtxtree->Branch("rccostheta" , &_vtxdata.rccostheta  , "rccostheata" );
+	  _pvtxtree->Branch("rcmass"     , &_vtxdata.rcmass      , "rcmass"      );
+	  _pvtxtree->Branch("xerr"       , &_vtxdata.xerr        , "xerr"        );
+	  _pvtxtree->Branch("yerr"       , &_vtxdata.yerr        , "yerr"        );
+	  _pvtxtree->Branch("zerr"       , &_vtxdata.zerr        , "zerr"        );
+	  _pvtxtree->Branch("chi2"       , &_vtxdata.chi2        , "chi2/D"      );
+	  _pvtxtree->Branch("rcntrk"     , &_vtxdata.rcntrk      , "rcntrk/I"    );
+	  _pvtxtree->Branch("ipTruthx"   , &_vtxdata.ipTruthx    , "ipTruthx"    );
+	  _pvtxtree->Branch("ipTruthy"   , &_vtxdata.ipTruthy    , "ipTruthy"    );
+	  _pvtxtree->Branch("ipTruthz"   , &_vtxdata.ipTruthz    , "ipTruthz"    );
+	  _pvtxtree->Branch("mcx"        , &_vtxdata.mcx         , "mcx"         );
+	  _pvtxtree->Branch("mcy"        , &_vtxdata.mcy         , "mcy"         );
+	  _pvtxtree->Branch("mcz"        , &_vtxdata.mcz         , "mcz"         );
+	  _pvtxtree->Branch("type"       , &_vtxdata.type        , "type/I"      );
+	  _pvtxtree->Branch("wegiht"     , &_vtxdata.weight      , "weight"      );
+	  _pvtxtree->Branch("mcntrk"     , &_vtxdata.mcntrk      , "mcntrk/I"    );
+	  _pvtxtree->Branch("mcpt"       , &_vtxdata.mcpt        , "mcpt"        );
+	  _pvtxtree->Branch("mcpx"       , &_vtxdata.mcpx        , "mcpx"        );
+	  _pvtxtree->Branch("mcpy"       , &_vtxdata.mcpy        , "mcpy"        );
+	  _pvtxtree->Branch("mcpz"       , &_vtxdata.mcpz        , "mcpz"        );
+	  _pvtxtree->Branch("mcp"        , &_vtxdata.mcp         , "mcp"         );
+	  _pvtxtree->Branch("mce"        , &_vtxdata.mce         , "mce"         );
+	  _pvtxtree->Branch("mccostheta" , &_vtxdata.mccostheta  , "mccostheata" );
+	  _pvtxtree->Branch("mcmass"     , &_vtxdata.mcmass      , "mcmass"      );
+	  _pvtxtree->Branch("mcpdg"      , &_vtxdata.mcpdg       , "mcpdg/I"     );
+
+          _svtxtree = new TTree("SecondaryVertex","Secondary Vertex tree");
+	  _svtxtree->Branch("nevt"       , &_evdata.nevt         , "nevt/I"      );
+	  _svtxtree->Branch("rcx"        , &_vtxdata.rcx         , "rcx"         );
+	  _svtxtree->Branch("rcy"        , &_vtxdata.rcy         , "rcy"         );
+	  _svtxtree->Branch("rcz"        , &_vtxdata.rcz         , "rcz"         );
+	  _svtxtree->Branch("rcpt"       , &_vtxdata.rcpt        , "rcpt"        );
+	  _svtxtree->Branch("rcpx"       , &_vtxdata.rcpx        , "rcpx"        );
+	  _svtxtree->Branch("rcpy"       , &_vtxdata.rcpy        , "rcpy"        );
+	  _svtxtree->Branch("rcpz"       , &_vtxdata.rcpz        , "rcpz"        );
+	  _svtxtree->Branch("rce"        , &_vtxdata.rce         , "rce"         );
+	  _svtxtree->Branch("rcp"        , &_vtxdata.rcp         , "rcp"         );
+	  _svtxtree->Branch("rccostheta" , &_vtxdata.rccostheta  , "rccostheata" );
+	  _svtxtree->Branch("rcmass"     , &_vtxdata.rcmass      , "rcmass"      );
+	  _svtxtree->Branch("xerr"       , &_vtxdata.xerr        , "xerr"        );
+	  _svtxtree->Branch("yerr"       , &_vtxdata.yerr        , "yerr"        );
+	  _svtxtree->Branch("zerr"       , &_vtxdata.zerr        , "zerr"        );
+	  _svtxtree->Branch("chi2"       , &_vtxdata.chi2        , "chi2/D"      );
+	  _svtxtree->Branch("rcntrk"     , &_vtxdata.rcntrk      , "rcntrk/I"    );
+	  _svtxtree->Branch("ipTruthx"   , &_vtxdata.ipTruthx    , "ipTruthx"    );
+	  _svtxtree->Branch("ipTruthy"   , &_vtxdata.ipTruthy    , "ipTruthy"    );
+	  _svtxtree->Branch("ipTruthz"   , &_vtxdata.ipTruthz    , "ipTruthz"    );
+	  _svtxtree->Branch("mcx"        , &_vtxdata.mcx         , "mcx"         );
+	  _svtxtree->Branch("mcy"        , &_vtxdata.mcy         , "mcy"         );
+	  _svtxtree->Branch("mcz"        , &_vtxdata.mcz         , "mcz"         );
+	  _svtxtree->Branch("type"       , &_vtxdata.type        , "type/I"      );
+	  _svtxtree->Branch("wegiht"     , &_vtxdata.weight      , "weight"      );
+	  _svtxtree->Branch("mcntrk"     , &_vtxdata.mcntrk      , "mcntrk/I"    );
+	  _svtxtree->Branch("mcpt"       , &_vtxdata.mcpt        , "mcpt"        );
+	  _svtxtree->Branch("mcpx"       , &_vtxdata.mcpx        , "mcpx"        );
+	  _svtxtree->Branch("mcpy"       , &_vtxdata.mcpy        , "mcpy"        );
+	  _svtxtree->Branch("mcpz"       , &_vtxdata.mcpz        , "mcpz"        );
+	  _svtxtree->Branch("mcp"        , &_vtxdata.mcp         , "mcp"         );
+	  _svtxtree->Branch("mce"        , &_vtxdata.mce         , "mce"         );
+	  _svtxtree->Branch("mccostheta" , &_vtxdata.mccostheta  , "mccostheata" );
+	  _svtxtree->Branch("mcmass"     , &_vtxdata.mcmass      , "mcmass"      );
+	  _svtxtree->Branch("mcpdg"      , &_vtxdata.mcpdg       , "mcpdg/I"     );
+          _svtxtree->Branch("dl"         , &_vtxdata.dl          , "dl/D"        );
+          _svtxtree->Branch("dt1"        , &_vtxdata.dt1         , "dt1/D"       );
+          _svtxtree->Branch("dt2"        , &_vtxdata.dt2         , "dt2/D"       );
+          _svtxtree->Branch("distancePvtxToSvtx", &_vtxdata.distancePvtxToSvtx, "distancePvtxToSvtx");
   std::cerr << "init called." << std::endl;
 }
 
 void MyAnalysis::process() {
-  std::cerr << "process called." << std::endl;
+  std::cerr << "### ev = " << _nEvt << std::endl;
+  _evdata.nevt = _nEvt;
+  //std::cerr << "process called." << std::endl;
+  const Vertex* pvtx = Event::Instance()->getPrimaryVertex(_privtxname.c_str());
+  std::vector<const Vertex*> svtxs = Event::Instance()->getSecondaryVertices(_secvtxname.c_str());
+  std::vector<const Vertex*> v0vtx = Event::Instance()->getSecondaryVertices(_v0vtxname.c_str());
+  const TrackVec& tracks = Event::Instance()->getTracks();
+  const NeutralVec& neutrals = Event::Instance()->getNeutrals();
+  const MCParticleVec& mcps = Event::Instance()->getMCParticles();
+  _mcps = &mcps;
+  //std::cerr << pvtx << std::endl;
+  //std::cerr << svtx.size() << std::endl;
+  std::cerr << "v0vtx.size() = " << v0vtx.size() << std::endl;
+  //std::cerr << tracks.size() << std::endl;
+  //std::cerr << neutrals.size() << std::endl;
+  //std::cerr << mcps.size() << std::endl;
+
+  std::vector<MCVertex> BCs; // B or C hadrons to be found in this event.
+  std::vector<MCVertex> V0s; // V0 to be found in this event.
+
+  //for (unsigned int itrk = 0; itrk < tracks.size(); itrk++) {
+  //  const MCParticle* mcp = tracks[itrk]->getMcp();
+  //}
+
+  _mcpIndex.clear(); // clean up 
+  for (unsigned int imcp = 0; imcp < mcps.size(); imcp++) {
+    const MCParticle* mcp = mcps[imcp];
+    _mcpIndex.insert(std::map<const MCParticle*,int>::value_type(mcp,imcp)); 
+  }
+
+  // Define a virtual MC particle for IP.
+  //TVector3 ipTruth = getIPTruth(mcps[0]);
+  TVector3 ipTruth = getIPTruth();
+  //MCParticle* ipmc = new MCParticle;
+//std::cerr << "### createVtxMCParticle for PrimaryVertex" << std::endl;
+  MCParticle* ipmc = createVtxMCParticle(ipTruth);
+  //ipmc->setVertex(ipTruth);
+  //setTracksOf(ipmc,mcps);
+  //setTracksOf(ipmc);
+  ipmc->setPDG(100000000);
+  _evdata.ipTruthx = ipTruth.X();
+  _evdata.ipTruthy = ipTruth.Y();
+  _evdata.ipTruthz = ipTruth.Z();
+
+  std::set<MCParticle*> BmbkgIPMCParticles;
+
+  std::map<const MCParticle*,MCParticleExt> mcpMap;
+  std::set<const MCParticle*> BCRegisteredList; // This will be used to check if the BC has already been registered.
+  std::set<const MCParticle*> V0RegisteredList; // This will be used to check if the V0 has already been registered.
+  for (unsigned int imcp = 0; imcp < mcps.size(); imcp++) {
+
+    const MCParticle* mcp = mcps[imcp];
+
+    MCParticleExt mcpe;
+    mcpe.setMCParticle(mcp);
+
+    int mcpdg = mcp->getPDG();
+    MCParticleExt Bpart, Cpart, Opart, V0part;
+//if (imcp==125) std::cerr << " ############# Check this part ! pdg " << mcpdg << " ndaughters = " << mcp->getDaughters().size() << std::endl;
+    if (mcp->getParent()&&mcp->getCharge()!=0&&
+        abs(mcpdg)>6&&  // remove bare quarks
+        mcpdg!=92&&mcpdg!=94 // remove intermediate states
+       //!(abs(mcpdg)==11&&mcp->getGeneratorStatus()==2) // remove beam particles
+       // && mcp->getDaughters().size()>0
+       ) { // corresponds to obserbed tracks
+    
+      //std::cerr << itrk << " " <<  mcp->getPDG() << std::endl;
+      Bpart.setMCParticle(mcp);    
+      Cpart.setMCParticle(mcp);    
+      Opart.setMCParticle(mcp);    
+      V0part.setMCParticle(mcp);    
+
+      updateSemistableAncestorOf(&Bpart, Blist);
+      if (Bpart.getAncestor()) { // if found
+         std::set<const MCParticle*>::iterator mcpitr = BCRegisteredList.find(Bpart.getAncestor());
+         if (mcpitr == BCRegisteredList.end()) {
+           BCRegisteredList.insert(Bpart.getAncestor()); 
+           MCVertex mcvtx;
+           mcvtx.mcpe.setMCParticle(Bpart.getAncestor()); 
+           mcvtx.mcpe.setAncestor(Bpart.getAncestor());
+           mcvtx.mcpe.setType(2);
+           BCs.push_back(mcvtx);
+         }
+      }
+//if (imcp==125) std::cerr << " ############# Check this part !" << std::endl;
+      updateSemistableAncestorOf(&Cpart, Clist);
+      if (Cpart.getAncestor()) {
+         std::set<const MCParticle*>::iterator mcpitr = BCRegisteredList.find(Cpart.getAncestor());
+         if (mcpitr == BCRegisteredList.end()) {
+           BCRegisteredList.insert(Cpart.getAncestor()); 
+           MCVertex mcvtx;
+           mcvtx.mcpe.setMCParticle(Cpart.getAncestor());
+           mcvtx.mcpe.setAncestor(Cpart.getAncestor());
+           mcvtx.mcpe.setType(3);
+           BCs.push_back(mcvtx);
+         }
+      }
+
+      updateSemistableAncestorOf(&Opart, Olist); 
+
+      updateSemistableAncestorOf(&V0part, V0list); 
+      // check if the daughtor has two charged particles that were actually found.
+      if (V0part.getAncestor()) {
+         bool isV0 = false;
+         if (V0part.getAncestor()->getDaughters().size()==2) {
+           const MCParticle* dau0 = V0part.getAncestor()->getDaughters()[0];
+           const MCParticle* dau1 = V0part.getAncestor()->getDaughters()[1];
+           if (dau0->getCharge() !=0 && dau1->getCharge() !=0 ) {
+               bool isTrackFound0 = false;
+               bool isTrackFound1 = false;
+               for (unsigned int itrk = 0; itrk < tracks.size(); itrk++) {
+                 const Track* trk = tracks[itrk];
+                 const MCParticle* mcp = trk->getMcp();
+                 if (dau0 == mcp) isTrackFound0 = true; 
+                 if (dau1 == mcp) isTrackFound1 = true; 
+               }            
+               if (isTrackFound0&&isTrackFound1) isV0 = true; 
+           }
+ 
+
+         }
+         if (!isV0) V0part.setAncestor(0); // Reset origin if it doesn't have two charged particles.
+      }
+    }
+
+    if (V0part.getAncestor()) {
+      std::map<const MCParticle*,int>::iterator mcindexitr;
+      mcindexitr = _mcpIndex.find(V0part.getAncestor());
+      int index = -1;
+      if (mcindexitr != _mcpIndex.end()) index = mcindexitr->second;
+      std::set<const MCParticle*>::iterator mcpitr = V0RegisteredList.find(V0part.getAncestor());
+      if (mcpitr == V0RegisteredList.end()) {
+        V0RegisteredList.insert(V0part.getAncestor()); 
+        MCVertex mcvtx;
+        mcvtx.mcpe.setMCParticle(V0part.getAncestor());
+        mcvtx.mcpe.setAncestor(V0part.getAncestor());
+        mcvtx.mcpe.setType(9); // V0 
+        V0s.push_back(mcvtx);
+//TVector3 pos(V0part.getAncestor()->getVertex());
+//std::cerr << "V0 particle found : index = " << index << " " << V0part.getAncestor()->getPDG() << " (" << pos.X() << ", " << pos.Y() << ", " << pos.Z() << ") "<< V0part.getAncestor()->getDaughters()[0]->getPDG() << " " << V0part.getAncestor()->getDaughters()[1]->getPDG() << std::endl;
+//std::cerr << "Myself = " << mcp->getPDG() << std::endl;
+      }
+    }
+    if (isFromBeambackground(mcp)) {
+      MCParticle* ipbeambkg = 0;
+      const MCParticle* mcporig = getOriginMCParticle(mcp);
+      TVector3 ipBeamBkg(mcporig->getVertex());
+      //std::map<const MCParticle*, MCParticle*>::iterator bmbkgipitr;
+      std::set<MCParticle*>::iterator bmbkgipitr;
+      //bmbkgipitr = BmbkgIPMCParticles.find(mcporig);
+      for (bmbkgipitr=BmbkgIPMCParticles.begin();bmbkgipitr!=BmbkgIPMCParticles.end();bmbkgipitr++) {
+        TVector3 refpos((*bmbkgipitr)->getVertex()); 
+        if ((refpos-ipBeamBkg).Mag()<aSmallNumber) { 
+          ipbeambkg = *bmbkgipitr;
+        }
+      }
+      if (!ipbeambkg) {
+//std::cerr << "### createVtxMCParticle for Beam background. (" << ipBeamBkg.X() << ", " << ipBeamBkg.Y() << ", " << ipBeamBkg.Z() << ") mcporig = " << mcporig << std::endl;
+         ipbeambkg = createVtxMCParticle(ipBeamBkg);
+         ipbeambkg->setPDG(100000001);
+         BmbkgIPMCParticles.insert(ipbeambkg);
+      }
+      mcpe.setType(0);
+      mcpe.setMCParticle(ipbeambkg);
+      mcpe.setAncestor(ipbeambkg);
+    } else if (isFromPrimaryVertex(mcp)) {
+      mcpe.setType(1);
+      mcpe.setMCParticle(ipmc);
+      mcpe.setAncestor(ipmc);
+    } else {
+
+      // Find the nearest ancester, e.g. B->C->O-> case, we define this particle as O.
+      std::vector<MCParticleExt> ancestry;
+      if (Bpart.getAncestor()) ancestry.push_back(Bpart); 
+      if (Cpart.getAncestor()) ancestry.push_back(Cpart); 
+      if (Opart.getAncestor()) ancestry.push_back(Opart); 
+
+      if (ancestry.size()) {
+         sort(ancestry.begin(),ancestry.end(),MCParticleExt::DescendingGeneration);
+         if      (ancestry[0].getAncestor()==Bpart.getAncestor()) {
+           mcpe.setType(2);
+           mcpe.setAncestor(Bpart.getAncestor());
+         }
+         else if (ancestry[0].getAncestor()==Cpart.getAncestor()) {
+           mcpe.setType(3);
+           mcpe.setAncestor(Cpart.getAncestor());
+         }
+         else if (ancestry[0].getAncestor()==Opart.getAncestor()) {
+            mcpe.setType(4);
+            mcpe.setAncestor(Opart.getAncestor());
+         } 
+      } else { // non of the above, e.g. 0 daughter particles.
+//std::cerr << "imcp = " << imcp << std::endl;
+//std::abort();
+         mcpe.setType(5);
+         mcpe.setAncestor(getParentIfSamePDG(mcp)); // if the particle radiates any particle, it shouldn't be recognized as its decay.
+      } 
+    }
+    mcpMap.insert(map<const MCParticle*,MCParticleExt>::value_type(mcp,mcpe));
+  }
+  std::cerr << "map size : " << mcpMap.size() << std::endl;
+  // MCParticle loop end.
+  
+
+  std::cerr << "Primary Vertex" << std::endl;
+  std::vector<const Vertex*> pvtxs;
+  pvtxs.push_back(pvtx);
+#if 0 // for single particle sample
+  checkVertices(pvtxs,BCs,mcpMap,_pvtxtree);
+  std::cerr << "Secondary Vertex" << std::endl;
+  checkVertices(svtxs,BCs,mcpMap,_svtxtree);
+#endif
+
+  // Track loop.
+  for (unsigned int itrk = 0; itrk < tracks.size(); itrk++) {
+    const Track* trk = tracks[itrk];
+    const MCParticle* mcp = trk->getMcp();
+    MCParticleExt trkmcpe;
+    trkmcpe.setMCParticle(mcp); // default MCParticle. This will be replaced if necessary. 
+
+    _trkdata.mcpdg  = mcp->getPDG();
+    _trkdata.mcx_vtx  = getParentIfSamePDG(mcp)->getVertex().X();
+    _trkdata.mcy_vtx  = getParentIfSamePDG(mcp)->getVertex().Y();
+    _trkdata.mcz_vtx  = getParentIfSamePDG(mcp)->getVertex().Z();
+    _trkdata.mcx_evtx = mcp->getEndVertex().X();
+    _trkdata.mcy_evtx = mcp->getEndVertex().Y();
+    _trkdata.mcz_evtx = mcp->getEndVertex().Z();
+    _trkdata.mcpt   = mcp->Pt();
+    _trkdata.mcpx   = mcp->Px();
+    _trkdata.mcpy   = mcp->Py();
+    _trkdata.mcpz   = mcp->Pz();
+    _trkdata.mce    = mcp->E();
+    _trkdata.mcp    = mcp->Vect().Mag();
+    _trkdata.mccostheta = _trkdata.mcpz/_trkdata.mcp;
+    _trkdata.rcpt   = trk->Pt();
+    _trkdata.rcpx   = trk->Px();
+    _trkdata.rcpy   = trk->Py();
+    _trkdata.rcpz   = trk->Pz();
+    _trkdata.rce    = trk->E();
+    _trkdata.rcp    = trk->Vect().Mag();
+    _trkdata.rccostheta = _trkdata.rcpz/_trkdata.rcp;
+    _trkdata.d0     = trk->getD0();
+    _trkdata.z0     = trk->getZ0();
+    _trkdata.phi    = trk->getPhi();
+    _trkdata.omg    = trk->getOmega();
+    _trkdata.tanl   = trk->getTanLambda();
+    _trkdata.d0err     = TMath::Sqrt(trk->getCovMatrix()[tpar::d0d0]);
+    _trkdata.z0err     = TMath::Sqrt(trk->getCovMatrix()[tpar::z0z0]);
+    _trkdata.phierr    = TMath::Sqrt(trk->getCovMatrix()[tpar::phph]);
+    _trkdata.omgerr    = TMath::Sqrt(trk->getCovMatrix()[tpar::omom]);
+    _trkdata.tanlerr   = TMath::Sqrt(trk->getCovMatrix()[tpar::tdtd]);
+    _trkdata.isFromP     = isFromPrimaryVertex(mcp);
+    _trkdata.isFromBmbkg = isFromBeambackground(mcp);
+
+    // Do same as in MCParticle loop.
+    MCParticleExt Bpart, Cpart, Opart;
+    Bpart.setMCParticle(mcp);    
+    Cpart.setMCParticle(mcp);    
+    Opart.setMCParticle(mcp);    
+    updateSemistableAncestorOf(&Bpart, Blist); 
+    if (Bpart.getAncestor()) _trkdata.isFromB = Bpart.getAncestor()->getPDG(); 
+    else                   _trkdata.isFromB = 0;
+    updateSemistableAncestorOf(&Cpart, Clist); 
+    if (Cpart.getAncestor()) _trkdata.isFromC = Cpart.getAncestor()->getPDG(); 
+    else                   _trkdata.isFromC = 0;
+    updateSemistableAncestorOf(&Opart, Olist); 
+    if (Opart.getAncestor()) _trkdata.isFromO = Opart.getAncestor()->getPDG(); 
+    else                   _trkdata.isFromO = 0;
+    // Find the nearest ancester, e.g. B->C case, we define this particle as C.
+    std::vector<MCParticleExt> ancestry;
+    if (Bpart.getAncestor()) ancestry.push_back(Bpart); 
+    if (Cpart.getAncestor()) ancestry.push_back(Cpart); 
+    if (Opart.getAncestor()) ancestry.push_back(Opart); 
+    if (ancestry.size()) {
+       sort(ancestry.begin(),ancestry.end(),MCParticleExt::DescendingGeneration);
+       if      (ancestry[0].getAncestor()==Bpart.getAncestor()) {
+         trkmcpe.setMCParticle(Bpart.getAncestor());
+         trkmcpe.setAncestor(Bpart.getAncestor());
+       }
+       else if (ancestry[0].getAncestor()==Cpart.getAncestor()) {
+         trkmcpe.setMCParticle(Cpart.getAncestor());
+         trkmcpe.setAncestor(Cpart.getAncestor());
+       }
+       else if (ancestry[0].getAncestor()==Opart.getAncestor()) {
+         trkmcpe.setMCParticle(Opart.getAncestor());
+         trkmcpe.setAncestor(Opart.getAncestor());
+       }
+    }
+
+    _trkdata.isAssociatedToPvtx = false;
+    //check if this track is associated to secondary vertieces.
+    for (int ipv = 0; ipv < pvtxs.size(); ipv++) {
+      const Vertex* pvtx = pvtxs[ipv];
+      const std::vector<const Track*> pvtracks = pvtx->getTracks();
+      std::vector<const Track*>::const_iterator pvtrackitr; 
+      pvtrackitr = std::find(pvtracks.begin(),pvtracks.end(),trk);
+      if (pvtrackitr != pvtracks.end()) { // found the pvtx that is associated with this track.
+        _trkdata.isAssociatedToPvtx = true;
+      }
+    }
+//std::cerr << "  itrk = " << itrk;
+//if (trkmcpe.getAncestor()) std::cerr << " orig : " << trkmcpe.getAncestor()->getPDG() << " ("<< trkmcpe.getAncestor() << ") "<< std::endl;
+//else std::cerr << " no orig info." << std::endl;
+    _trkdata.isAssociatedToSvtx = false;
+    _trkdata.isCorrectVertex = false; 
+    _trkdata.isCorrectDChain = false; // valid only for B,C vertices.
+    bool isSearchEnd = false;
+    //check if this track is associated to secondary vertieces.
+    for (int isv = 0; isv < svtxs.size(); isv++) {
+      const Vertex* svtx = svtxs[isv];
+      const std::vector<const Track*> svtracks = svtx->getTracks();
+      std::vector<const Track*>::const_iterator svtrackitr; 
+      svtrackitr = std::find(svtracks.begin(),svtracks.end(),trk);
+      if (svtrackitr != svtracks.end()) { // found the svtx that is associated with this track.
+        _trkdata.isAssociatedToSvtx = true;
+        for (int ibc = 0; ibc < BCs.size(); ibc++) {
+          MCVertex& mcv = BCs[ibc];
+//std::cerr << "ibc = " << ibc << " mcv.mcpe.getMCParticle()->getPDG() = " << mcv.mcpe.getMCParticle()->getPDG() << std::endl;
+          if (mcv.matchedvtxrec==svtx) {  // found the mcvtx that is matched to this svtx.
+//std::cerr << "### mcvtx matched" << std::endl;
+             // check if this track origin has a C-hadron descendant.
+             if(updateSemistableDescendantOf(&trkmcpe, Clist)){       // confirm trkmcpe.getDescendant() is found.
+               if (mcv.mcpe.getAncestor()==trkmcpe.getDescendant()) { // track originated from B (trk) but associated to C (mcv).
+                 _trkdata.isCorrectDChain = true;
+//std::cerr << "track orig : " << trkmcpe.getAncestor()->getPDG() << " mcvtx : " << mcv.mcpe.getAncestor()->getPDG() << " track orig has " << trkmcpe.getDescendant()->getPDG() << " in descendants." << std::endl;
+               }
+             }
+             // check if MC origin has a C-hadron descendant.
+//std::cerr << "trkmcpe.getAncestor()->getPDG() = " << trkmcpe.getAncestor()->getPDG() << " mcv.mcpe.getAncestor()->getPDG() = " << mcv.mcpe.getAncestor()->getPDG() << " mcv.mcpe.getMCParticle()->getPDG() = " << mcv.mcpe.getMCParticle()->getPDG() << " type: " << mcv.mcpe.getType() << std::endl;
+             mcv.mcpe.setGeneration(0);
+             if (updateSemistableDescendantOf(&mcv.mcpe, Clist)){     // confirm mvc.mcpe.getDescendant() is found.
+               if (mcv.mcpe.getDescendant()==trkmcpe.getAncestor()) { // track originated from C (trk) but associated to B (mcv).
+                 _trkdata.isCorrectDChain = true;
+//std::cerr << "track orig : " << trkmcpe.getAncestor()->getPDG() << " mcvtx : " << BCs[ibc].mcpe.getAncestor()->getPDG() << " mcvtx has " << BCs[ibc].mcpe.getDescendant()->getPDG() << " in descendants." << std::endl;
+               }
+             } 
+             if (mcv.mcpe.getAncestor()==trkmcpe.getAncestor() && trkmcpe.getAncestor()) {
+//std::cerr << "Correctly found : pdg " <<  trkmcpe.getAncestor()->getPDG() << std::endl;
+                _trkdata.isCorrectDChain = true;
+                _trkdata.isCorrectVertex = true;
+             }
+             isSearchEnd = true;
+
+             // Before end, fill info related to vertex.
+             TVector3 pvpos(pvtx->getPos());
+             TVector3 svpos(svtx->getPos());
+             _trkdata.distancePvtxToSvtx = (svpos-pvpos).Mag();
+             _trkdata.mcvpdg = mcv.mcpe.getMCParticle()->getPDG();
+             _trkdata.mcve   = mcv.mcpe.getMCParticle()->E();
+             _trkdata.mcvp   = mcv.mcpe.getMCParticle()->Vect().Mag();
+             _trkdata.mcvpt  = mcv.mcpe.getMCParticle()->Pt();
+             _trkdata.mcvpx  = mcv.mcpe.getMCParticle()->Px();
+             _trkdata.mcvpy  = mcv.mcpe.getMCParticle()->Py();
+             _trkdata.mcvpz  = mcv.mcpe.getMCParticle()->Pz();
+             _trkdata.mcvcostheta = _trkdata.mcvpz/_trkdata.mcvp;
+//std::cerr << "_trkdata.mcvpdg = " << _trkdata.mcvpdg << " " 
+//          << "_trkdata.mcve = "   << _trkdata.mcve   << " " 
+//          << "_trkdata.mcvp = "   << _trkdata.mcvp   << " " 
+//          << "_trkdata.mcvpt = "  << _trkdata.mcvpt  << " " 
+//          << "_trkdata.mcvpx = "  << _trkdata.mcvpx  << " " 
+//          << "_trkdata.mcvpy = "  << _trkdata.mcvpy  << " " 
+//          << "_trkdata.mcvpz = "  << _trkdata.mcvpz  << " " 
+//          << "_trkdata.mcvcostheta = "  << _trkdata.mcvcostheta  << std::endl; 
+
+             break;
+          }
+        } 
+      }
+      if (isSearchEnd) break;
+    }
+    _trktree->Fill();
+  }
+#if 1
+  const bool dump = true;
+  if (dump) {
+    std::cerr << "#### Summary (Secondary vertices) ####" << std::endl;
+    std::cerr << "# of vertices to be found = " << BCs.size() << std::endl;
+    int nbcvtxrec = 0;
+    int nbcvtxmc = 0;
+    int nbcvtxrec_b = 0;
+    int nbcvtxmc_b = 0;
+    int nbcvtxrec_c = 0;
+    int nbcvtxmc_c = 0;
+    std::vector<MCVertex>::iterator mcvtxitr;
+    for (mcvtxitr = BCs.begin(); mcvtxitr!=BCs.end(); mcvtxitr++) {
+      nbcvtxmc++;
+      if (mcvtxitr->mcpe.getType()==2) nbcvtxmc_b++;
+      if (mcvtxitr->mcpe.getType()==3) nbcvtxmc_c++;
+      if (dump) std::cerr << "  " << setw(4) << nbcvtxmc << ") " << setw(5) << mcvtxitr->mcpe.getAncestor()->getPDG() 
+                          << " (" << (*mcvtxitr).mcpe.getAncestor() << ") ";
+        if (mcvtxitr->matchedvtxrec) {
+          nbcvtxrec++;
+          if ((*mcvtxitr).mcpe.getType()==2) nbcvtxrec_b++;
+          if ((*mcvtxitr).mcpe.getType()==3) nbcvtxrec_c++;
+          std::cerr << " Found.";
+          //TVector3 vpos(mcvtxitr->mcpe.getAncestor()->getEndVertex());
+          //std::cerr << " TEST : (" << vpos.X() << ", " << vpos.Y() << ", " << vpos.Z() << ") "; 
+        } else {
+          std::cerr << " Not found.";
+          TVector3 vpos(mcvtxitr->mcpe.getAncestor()->getEndVertex());
+          std::cerr << " Vertex : (" << vpos.X() << ", " << vpos.Y() << ", " << vpos.Z() << ") "; 
+          //int nfoundtracks = 0;
+	  //for(int ipfo=0; ipfo < colPFO->getNumberOfElements(); ipfo++) {
+          //   ReconstructedParticle *part = dynamic_cast<ReconstructedParticle*>( colPFO->getElementAt( ipfo ) );
+          //   if (part->getTracks().size()) {
+          //     MCParticle *mcp = getBestMCParticleOf(part,relnav);
+          //     if ((*mcvtxitr).mcpe.isAncestorOf(mcp)) {
+          //       nfoundtracks++;
+          //     }
+          //   }
+          //}
+          //if (nfoundtracks==1)     {
+          //   std::cerr << " (1 pfo track for this vertex exists but was not associated.)";
+          //   TVector3 vpos(mcvtxitr->mcpe.getAncestor()->getEndVertex());
+          //   std::cerr << " TEST : (" << vpos.X() << ", " << vpos.Y() << ", " << vpos.Z() << ") "; 
+          //} else if (nfoundtracks>1) {
+          //   std::cerr << " (" << nfoundtracks << " pfo tracks for this vertex exist but were not associated.)";
+          //   TVector3 vpos(mcvtxitr->mcpe.getAncestor()->getEndVertex());
+          //   std::cerr << " TEST : (" << vpos.X() << ", " << vpos.Y() << ", " << vpos.Z() << ") "; 
+          //} else                     std::cerr << " (No track exist.)";
+        }
+        std::cerr << std::endl;
+    }
+    std::cerr << "Vertex reconstruction efficiency = " << float(nbcvtxrec)/float(nbcvtxmc) 
+              << " (" << float(nbcvtxrec) << "/" <<float(nbcvtxmc) << ")" << std::endl;
+    std::cerr << "Vertex reconstruction efficiency (b) = " << float(nbcvtxrec_b)/float(nbcvtxmc_b) << std::endl; 
+    std::cerr << "Vertex reconstruction efficiency (c) = " << float(nbcvtxrec_c)/float(nbcvtxmc_c) << std::endl;
+  }
+#endif
+  _nEvt++;
+
+  // clean up
+  if (ipmc) delete ipmc;
+  std::set<MCParticle*>::reverse_iterator ipbmbkgmcsitr;
+  for (ipbmbkgmcsitr=BmbkgIPMCParticles.rbegin(); ipbmbkgmcsitr!=BmbkgIPMCParticles.rend();ipbmbkgmcsitr++) delete *ipbmbkgmcsitr; // delete only obejct newly created in this process.
 }
 
 void MyAnalysis::end() {
+  _trktree->Write();
+  _pvtxtree->Write();
+  _svtxtree->Write();
+  _file->Close();
   std::cerr << "end called." << std::endl;
 }
+
+bool MyAnalysis::updateSemistableAncestorOf(MCParticleExt* p, std::vector<int>& plist)
+{
+   if (p->getGeneration()<0) p->setGeneration(0);
+
+   int nElements = plist.size();
+
+   int pdg = p->getMCParticle()->getPDG();
+
+   if (p->getGeneration()>0) {
+     
+     std::vector<int>::iterator itr;
+     itr = find(plist.begin(), plist.end(), abs(pdg));
+     if (itr!=plist.end()) {
+       if (p->getMCParticle()->getDaughters().size()>0) {
+         p->setAncestor(p->getMCParticle());
+         return true;
+       }
+     }
+   }
+
+   p->incrementGeneration();
+   if (p->getMCParticle()->getParent()) {
+     const MCParticle* orig = p->getMCParticle();
+     p->setMCParticle(p->getMCParticle()->getParent());
+     bool retval = updateSemistableAncestorOf(p,plist);
+     p->setMCParticle(orig); // set it back.
+     if (retval) return retval;
+   }
+   return false;
+}
+
+bool MyAnalysis::updateSemistableDescendantOf(MCParticleExt* p, std::vector<int>& plist)
+{
+   if (p->getGeneration()>0) p->setGeneration(0);
+
+   int nElements = plist.size();
+   int pdg = p->getMCParticle()->getPDG();
+//std::cerr << "    updateSemistableDescendantOf :: pdg = " << pdg << "  gen = " << p->getGeneration() << std::endl;
+
+   if (p->getGeneration()<0) {
+     
+     std::vector<int>::iterator itr;
+     itr = find(plist.begin(), plist.end(), abs(pdg));
+     if (itr!=plist.end()) {
+       p->setDescendant(p->getMCParticle());
+       return true;
+     }
+   }
+
+   p->decrementGeneration();
+   for ( int i = 0; i < p->getMCParticle()->getDaughters().size(); i++) {
+     const MCParticle* orig = p->getMCParticle();
+     p->setMCParticle(p->getMCParticle()->getDaughters()[i]);
+     bool retval = updateSemistableDescendantOf(p,plist);
+     p->setMCParticle(orig); // set it back.
+//if (retval) std::cerr << "    updateSemistableDescendantOf :: return pdg = " << p->getDescendant()->getPDG() << std::endl;
+     if (retval) return retval;
+   }
+   return false;
+}
+
+const MCParticle* MyAnalysis::getParentIfSamePDG(const MCParticle* p)
+{
+    if (p->getParent()){
+      const MCParticle* parent = p->getParent();
+      if (parent->getPDG()==p->getPDG()) {
+        return getParentIfSamePDG(parent);
+      }
+    }
+    return p; 
+}
+
+//TVector3 MyAnalysis::getIPTruth(const MCParticle* p) {
+TVector3 MyAnalysis::getIPTruth() {
+  //const MCParticle* mcp = p;
+  //while (mcp->getParent()) {
+  //  mcp = mcp->getParent();
+  //}
+  //return mcp->getVertex();
+  return (*_mcps)[0]->getVertex();
+}
+
+bool MyAnalysis::isFromPrimaryVertex(const MCParticle* p)
+{
+  const MCParticle* newp = getParentIfSamePDG(p); // if the particle radiates any particle, it shouldn't be recognized as its decay.
+  TVector3 vtxvec(newp->getVertex());
+  //TVector3 ipTruth = getIPTruth(p);
+  TVector3 ipTruth = getIPTruth();
+  return ((vtxvec-ipTruth).Mag() < aSmallNumber); 
+}
+
+bool MyAnalysis::isFromBeambackground(const MCParticle* p)
+{
+#if 0
+
+#if 1
+   const MCParticleVec& mcps = Event::Instance()->getMCParticles();
+   if (p==mcps[0] || p==mcps[1]) return false;
+#endif
+   return true;
+#else // flag added to MCParticle. See simulation flag in LCIO::MCParticle.
+      // 23: overlay
+   return (p->getFlag() & (1<<23));
+#endif
+}
+
+const MCParticle* MyAnalysis::getOriginMCParticle(const MCParticle* p)
+{
+   if (p->getParent()) {
+     const MCParticle *parent = p->getParent();
+     return getOriginMCParticle(parent);
+   }
+   return p;
+}
+
+void MyAnalysis::checkVertices(std::vector<const Vertex*>& vtxs, std::vector<MCVertex>& mcvtxs, 
+                                                                 std::map<const MCParticle*,MCParticleExt>& mcpMap,
+                                                                 TTree* outtree)
+{
+   const bool dump = true;
+   for (unsigned int iv = 0; iv < vtxs.size(); iv++) {
+      std::vector<MCParticleExt> vtxmcps; // Candidates of the truth vertex for this vertex.
+      std::vector<MCParticleExt>::iterator vtxmcpitr; // Candidates of the truth vertex for this vertex.
+
+      std::cerr << "New Vertex :" << std::endl;
+      const Vertex* vtx = vtxs[iv];
+      TVector3 vpos(vtx->getPos());
+      _vtxdata.rcx = vpos.X();
+      _vtxdata.rcy = vpos.Y();
+      _vtxdata.rcz = vpos.Z();
+      const vector<const Track*> tracks = vtx->getTracks();
+      _vtxdata.rcntrk = tracks.size();
+      //std::cerr << "tracks.size() = " << tracks.size() << std::endl;
+      std::map<const MCParticle*,MCParticleExt>::iterator mcpeitr;
+      TLorentzVector vtx4p(0.,0.,0.,0.);
+      TVector3 ipTruth;
+      for (unsigned int itrk = 0; itrk < tracks.size(); itrk++) {
+         const Track* trk = tracks[itrk];
+         vtx4p += (*trk);
+//std::cerr << "Test : getChi2Track() = " << vtx->getChi2Track(trk) << std::endl;
+//Helix hel(&(*trk),PointBase::SECVTX);
+//double tmin = -9999999;
+//std::cerr << "loglikelihood = " << hel.LogLikelihood(vpos, tmin) << std::endl;
+
+         const MCParticle* mcp = trk->getMcp();
+         mcpeitr = mcpMap.find(mcp);
+         if (mcpeitr != mcpMap.end()) {
+            //MCParticleExt& mcpe = mcpeitr->second;
+            MCParticleExt mcpe = mcpeitr->second;
+            mcpe.addAssociatedTrack(trk);
+#if 0
+std::map<const MCParticle*,int>::iterator mcindexitr;
+mcindexitr = _mcpIndex.find(mcp);
+int index = -1;
+if (mcindexitr != _mcpIndex.end()) index = mcindexitr->second;
+std::cerr << "itrk = " << itrk << " mcp index = " << index << std::endl;
+#endif
+         
+               //std::cerr <<  mcpe.getMCParticle()->getPDG() << " mcpe.getAncestor() = " << mcpe.getAncestor() << std::endl;
+
+            if (itrk==0) {
+               //ipTruth = getIPTruth(mcp);
+               ipTruth = getIPTruth();
+               _vtxdata.ipTruthx = ipTruth.X();
+               _vtxdata.ipTruthy = ipTruth.Y();
+               _vtxdata.ipTruthz = ipTruth.Z();
+               if (dump) {
+                 std::cerr << "      IP = (" << ipTruth.X() << ", " << ipTruth.Y() << ", " << ipTruth.Z() << ")" << std::endl;
+                 std::cerr << "      Reconstructed vertex has " << tracks.size() << " track";
+                 if (tracks.size()>1) std::cerr << "s";
+                 std::cerr << ". ";
+                 std::cerr << "(" << vpos.X() << ", " << vpos.Y() << ", " << vpos.Z() << ")"<< std::endl;
+               }
+            }
+
+            //const MCParticle* origin = mcpe.getAncestor();
+            //if (origin) std::cerr << "origin : " << origin->getPDG() << std::endl;
+            //else        std::cerr << "origin 0, type : " << mcpe.getType() << std::endl;
+
+
+            bool isFirstMCTruth = true; // check if the correspoinding truth candidate for this vertex track has been already registered in vtxmcps or not.
+            // vtxmcps is a list of MC vtx truth candidates found so far. 
+            // If same MC truth already found, add this track (trk) to the MC vtx truth (vtxmcptr).
+            for (vtxmcpitr = vtxmcps.begin(); vtxmcpitr!=vtxmcps.end(); vtxmcpitr++) {
+
+              //if (!mcpe.getAncestor()) { // tracks from beam bkg or primary
+
+                if (mcpe.getType()==1 && vtxmcpitr->getType()==1) { //primary
+                     vtxmcpitr->addAssociatedTrack(trk);
+                     isFirstMCTruth = false;
+                     break;
+                } 
+            
+                if (mcpe.getType()==0 && vtxmcpitr->getType()==0) { //beam bkg
+                    vtxmcpitr->addAssociatedTrack(trk);
+                    isFirstMCTruth = false;
+                    break;
+                }
+            
+              //} else { // tracks from other than beam bkg or primary vtx.
+                if (vtxmcpitr->getAncestor()==mcpe.getAncestor() ) { // if the same origin has already been found.
+                   vtxmcpitr->addAssociatedTrack(trk);
+                   isFirstMCTruth = false;
+                   break;
+                } 
+              //}
+            }
+
+            // if this MC truth has not yet been registered, just add it to vtxmcps. 
+            if (isFirstMCTruth) { 
+#if 0
+//std::cerr << "pdg = " << mcpe.getMCParticle()->getPDG() << " origin PDG = " << mcpe.getAncestor()->getPDG() << "(" << mcpe.getAncestor() << ")"<< std::endl;
+std::cerr << "pdg = " << mcp->getPDG() << " origin PDG = " << mcpe.getAncestor()->getPDG() << "(" << mcpe.getAncestor() << ")"<< std::endl;
+#endif
+                // if it is not any semistable particle.
+                //if (mcpe.getType()!=5) vtxmcps.push_back(mcpe);
+                vtxmcps.push_back(mcpe);
+            }
+         }
+      } //track loop
+      _vtxdata.rcmass = vtx4p.M();
+      _vtxdata.rce    = vtx4p.E();
+      _vtxdata.rcp    = vtx4p.Vect().Mag();
+      _vtxdata.rcpt   = vtx4p.Pt();
+      _vtxdata.rcpx   = vtx4p.Px();
+      _vtxdata.rcpy   = vtx4p.Py();
+      _vtxdata.rcpz   = vtx4p.Pz();
+      _vtxdata.rccostheta = _vtxdata.rcpz/_vtxdata.rcp;
+      _vtxdata.xerr = TMath::Sqrt(vtx->getCov()[Vertex::xx]);
+      _vtxdata.yerr = TMath::Sqrt(vtx->getCov()[Vertex::yy]);
+      _vtxdata.zerr = TMath::Sqrt(vtx->getCov()[Vertex::zz]);
+      _vtxdata.chi2 = vtx->getChi2();
+      //for (int i = 0; i < vtxmcps.size(); i++) {
+      //  std::cerr << " i = " << i << " vtx->getPos().X() = " << vtx->getPos().X() << std::endl;
+      //  vtxmcps[i].setRecPos(vtx->getPos()); // This will be used when # of NAssociatedTracks are identical. 
+      //}
+      sort(vtxmcps.begin(),vtxmcps.end(),MCParticleExt::AscendingNAssociatedTracks);
+
+      int ntotaltracks = 0;
+      for (int i = 0; i < vtxmcps.size(); i++) {
+        if (dump) std::cerr << "      Candidate origin " << i << ") ";
+        TVector3 mcvpos;
+        string origin;
+        if (vtxmcps[i].getType()==5) {
+          std::cerr << "This is an unexpected case. Please check." << std::endl;
+          std::abort();
+        } else if (vtxmcps[i].getAncestor()->getPDG()==100000000) {
+          origin = "IP";
+          mcvpos = TVector3(vtxmcps[i].getAncestor()->getVertex());
+        } else if (vtxmcps[i].getAncestor()->getPDG()==100000001) {
+          origin = "Beam bkg.";
+          mcvpos = TVector3(vtxmcps[i].getAncestor()->getVertex());
+        } else {
+          origin = std::to_string(vtxmcps[i].getAncestor()->getPDG());
+          mcvpos = TVector3(vtxmcps[i].getAncestor()->getEndVertex()); // Note that this getEndVertex is different from LCIO::MCParticle::getEndVertex()!
+          //mcvpos = TVector3(vtxmcps[i].getAncestor()->getVertex());
+        }
+        std::map<const MCParticle*,int>::iterator mcindexitr;
+        mcindexitr = _mcpIndex.find(vtxmcps[i].getAncestor());
+        int index = -1;
+        if (mcindexitr != _mcpIndex.end()) index = mcindexitr->second;
+        if (dump) std::cerr << origin << " ";
+        if (dump) std::cerr << "(" << vtxmcps[i].getAncestor() << "), index = " << index << ", ntrcks assigned = " << vtxmcps[i].getNAssociatedTracks() 
+                            << ", Vertex (" << mcvpos.X() << ", " << mcvpos.Y() << ", " << mcvpos.Z() << ")"<< std::endl;
+//std::cerr << "nDau = " << vtxmcps[i].getAncestor()->getDaughters().size() << " " << vtxmcps[i].getGeneration() << " type = " << vtxmcps[i].getType() << std::endl;
+#if 0 // check track fit
+          for (int itrk = 0; itrk < vtxmcps[i].getNAssociatedTracks(); itrk++) {
+             const Track* trk = vtxmcps[i].getAssociatedTrack(itrk);
+             Helix hel(trk,PointBase::SECVTX);
+             double tmin;
+             std::cerr << "track loglikelihood = " << hel.LogLikelihood(vpos,tmin) << " " << tmin<< std::endl;
+          }
+#endif
+        ntotaltracks += vtxmcps[i].getNAssociatedTracks();
+      }
+ 
+      // initialization
+      _vtxdata.weight = -1.;
+      _vtxdata.mcpdg  = 0;
+
+      TVector3 mcvpos;
+      if (vtxmcps.size() ) {
+        if (vtxmcps.size()>1) {
+          int index_w_sameNtracks;
+          for (index_w_sameNtracks = 1; index_w_sameNtracks < vtxmcps.size(); index_w_sameNtracks++) {
+            if (vtxmcps[0].getNAssociatedTracks()!=vtxmcps[index_w_sameNtracks].getNAssociatedTracks()) break; 
+          }
+          index_w_sameNtracks;
+        
+//if (index_w_sameNtracks>0) std::cerr << "[0-" << index_w_sameNtracks << "] must be tested." << std::endl;
+//else std::cerr << "only [0] must be tested." << std::endl;
+//std::cerr << "vtxmcps[0].getAncestor()->getDaughters().size() = " << std::endl;
+//std::cerr << vtxmcps[0].getAncestor()->getDaughters().size() << std::endl;
+          if (index_w_sameNtracks>1) {
+             // When the # of tracks are identical, take the one that is nearer to the Rconstructed vertex position.
+             int index_best = 0;
+             float distance_best = (vtxmcps[0].getAncestor()->getEndVertex() - vtx->getPos()).Mag();
+//std::cerr << "original distance_best = " << distance_best << std::endl;
+             for (int i = 1; i < index_w_sameNtracks; i++) {
+               float distance_test = (vtxmcps[i].getAncestor()->getEndVertex() - vtx->getPos()).Mag(); 
+//std::cerr << "test " << i << " distance_test = " << distance_test << std::endl;
+               if (distance_test < distance_best) {
+                 index_best = i;
+                 distance_best = distance_test; 
+               } 
+             }
+//if (index_best>0) {
+//std::cerr << "Must be swapped. index_best = " << index_best << std::endl;
+//std::cerr << "before swap : (vtxmcps[0].getAncestor()->getEndVertex() - vtx->getPos()).Mag() = " << (vtxmcps[0].getAncestor()->getEndVertex() - vtx->getPos()).Mag() << std::endl;
+             if (index_best>0) std::iter_swap(vtxmcps.begin(),vtxmcps.begin()+index_best);  
+//std::cerr << "after swap : (vtxmcps[0].getAncestor()->getEndVertex() - vtx->getPos()).Mag() = " << (vtxmcps[0].getAncestor()->getEndVertex() - vtx->getPos()).Mag() << std::endl;
+//}
+          }
+
+        }
+        string origin;
+        if (vtxmcps[0].getAncestor()->getPDG()==100000000) {
+          origin = "IP";
+          mcvpos = TVector3(vtxmcps[0].getAncestor()->getVertex());
+        } else if (vtxmcps[0].getAncestor()->getPDG()==100000001) {
+          origin = "Beam bkg.";
+          mcvpos = TVector3(vtxmcps[0].getAncestor()->getVertex());
+        } else {
+          origin = std::to_string(vtxmcps[0].getAncestor()->getPDG());
+          mcvpos = TVector3(vtxmcps[0].getAncestor()->getEndVertex()); // Note that this getEndVertex is different from LCIO::MCParticle::getEndVertex()!
+        } 
+        _vtxdata.weight = float(vtxmcps[0].getNAssociatedTracks())/float(ntotaltracks);
+        _vtxdata.mcpdg = vtxmcps[0].getAncestor()->getPDG();
+        if (dump) cerr << "      Best estimation :   " << origin << " (" << vtxmcps[0].getAncestor() << "), w = " << _vtxdata.weight << endl; 
+      }
+
+      // loop in MCVertex to be found. vtxmcps[0] is the best candidate.
+      for (int imcv = 0; imcv < mcvtxs.size(); imcv++) {
+//std::cerr << "##### mcvtxs[imcv].mcpe.getMCParticle()->getPDG() = " << mcvtxs[imcv].mcpe.getMCParticle()->getPDG() << std::endl; 
+        if (vtxmcps[0].getAncestor()->getDaughters().size()) { // secondary vertex
+          //if (mcvtxs[imcv].mcpe->getMCParticle()==vtxmcps[0]->getMCParticle()) {
+          if (mcvtxs[imcv].mcpe.getAncestor()==vtxmcps[0].getAncestor()) {
+            if (mcvtxs[imcv].purity < float(vtxmcps[0].getNAssociatedTracks())/float(ntotaltracks)) {
+              mcvtxs[imcv].matchedvtxrec = vtx; // correctly found 
+              mcvtxs[imcv].ntrk = ntotaltracks; 
+              mcvtxs[imcv].purity = float(vtxmcps[0].getNAssociatedTracks())/float(ntotaltracks); 
+            }
+          }
+        } else { // primary vertex, beam bkg.
+            //cerr << "##### primary vertex!" << std::endl;
+           if (mcvtxs[imcv].mcpe.getType() == vtxmcps[0].getType()) {
+              if (mcvtxs[imcv].purity < float(vtxmcps[0].getNAssociatedTracks())/float(ntotaltracks)) {
+                mcvtxs[imcv].mcpe = vtxmcps[0];
+                mcvtxs[imcv].matchedvtxrec = vtx; // correctly found 
+                mcvtxs[imcv].ntrk = ntotaltracks; 
+                mcvtxs[imcv].purity = float(vtxmcps[0].getNAssociatedTracks())/float(ntotaltracks); 
+              }
+           }
+        }
+      }
+
+      _vtxdata.type  = vtxmcps[0].getType();
+      _vtxdata.mcx   = mcvpos.X();
+      _vtxdata.mcy   = mcvpos.Y();
+      _vtxdata.mcz   = mcvpos.Z();
+      _vtxdata.mcpt  = vtxmcps[0].getAncestor()->Pt();
+      _vtxdata.mcpx  = vtxmcps[0].getAncestor()->Px();
+      _vtxdata.mcpy  = vtxmcps[0].getAncestor()->Py();
+      _vtxdata.mcpz  = vtxmcps[0].getAncestor()->Pz();
+      _vtxdata.mcp   = vtxmcps[0].getAncestor()->Vect().Mag();
+      _vtxdata.mce   = vtxmcps[0].getAncestor()->E();
+      _vtxdata.mccostheta = _vtxdata.mcpz/_vtxdata.mcp;
+      _vtxdata.mcpdg = vtxmcps[0].getAncestor()->getPDG();
+      _vtxdata.mcmass= vtxmcps[0].getAncestor()->M();
+      _vtxdata.mcntrk=0; 
+      for ( int idau = 0; idau < vtxmcps[0].getAncestor()->getDaughters().size(); idau++ ) {
+         const MCParticle* dau = vtxmcps[0].getAncestor()->getDaughters()[idau];
+         if (fabs(dau->getCharge())>0) {
+           TVector3 start(dau->getVertex());
+           TVector3 end(dau->getEndVertex());
+           if ((end-start).Mag()>30) {
+           //if ((end-start).Mag()>0.01) {
+              _vtxdata.mcntrk++; // Assume 3cm-long track can be found (~ 1cm^3 voxel * 3 hits). 
+              //std::cerr << "dau->getPDG() (" << dau << ") = " << dau->getPDG() << std::endl;
+           }
+         }
+      }
+
+      TVector3 axisL = (mcvpos - ipTruth).Unit(); // Axis along pvtx - svtx.
+//if (axisL.Mag()<1) std::cerr << "axisL.Mag() = " << axisL.Mag() << std::endl;
+      TVector3 axisZ(0.,0.,1.);
+      TVector3 axisT1 = axisZ.Cross(axisL);
+      TVector3 axisT2 = axisL.Cross(axisT1);
+
+      TVector3 residualvec = vpos - mcvpos;
+      float dl = residualvec.Dot(axisL);
+      //TVector3 residualL = dl*axisL;
+      //TVector3 residualT = residualvec - residualL;
+      //float dt1 = residualT.Dot(axisT1);
+      //float dt2 = residualT.Dot(axisT2);
+      float dt1 = residualvec.Dot(axisT1);
+      float dt2 = residualvec.Dot(axisT2);
+      _vtxdata.dl = dl;
+      _vtxdata.dt1 = dt1; // z x L
+      _vtxdata.dt2 = dt2; // L x T1
+      _vtxdata.distancePvtxToSvtx = (mcvpos - ipTruth).Mag();
+
+      outtree->Fill();
+   }//vertex loop
+}
+
+//void MyAnalysis::setTracksOf(MCParticle* vtx, const MCParticleVec& mcps) {
+//void MyAnalysis::setTracksOf(MCParticle* vtx) {
+//  TVector3 vpos(vtx->getVertex());
+//  for (unsigned int i=0; i<_mcps->size(); i++) {
+//    TVector3 pos((*_mcps)[i]->getVertex());
+//    if ((vpos-pos).Mag() < aSmallNumber) vtx->addDaughter((*_mcps)[i]); // set tracks if the origin is near enough.
+//  }
+//}
+
+MCParticle* MyAnalysis::createVtxMCParticle(TVector3& vpos) {
+
+  MCParticle* vtx = new MCParticle;
+  vtx->setVertex(vpos);
+  std::set<const MCParticle*> dau_candidates; // avoid double-counting.
+  for (unsigned int i=0; i<_mcps->size(); i++) {
+    TVector3 pos(getParentIfSamePDG((*_mcps)[i])->getVertex());
+    TVector3 epos((*_mcps)[i]->getEndVertex()); // Note that if the particle has no daughter, the end vertex will be identical to the start vertex.
+//if (fabs(vpos.X())<aSmallNumber&&(fabs(vpos.Y())<aSmallNumber) {
+//}
+    if ((vpos-pos).Mag() < aSmallNumber && ((epos-pos).Mag() > aSmallNumber || (*_mcps)[i]->getDaughters().size()==0) ) { // require the daughter fly somewhat (aSmallNumber) or no daughters.
+      dau_candidates.insert(getParentIfSamePDG((*_mcps)[i]));
+//    std::cerr << "i = " << i << " " << (*_mcps)[i]->getPDG() << " (vpos-pos).Mag() = " << (vpos-pos).Mag() << " (epos-pos).Mag() = " << (epos-pos).Mag() << std::endl;
+//if (fabs(vpos.X())<aSmallNumber) std::cerr << " added" << std::endl;
+    }
+  }
+bool test = false;
+//std::cerr << std::endl;
+  std::set<const MCParticle*>::iterator dauitr;
+  for (dauitr = dau_candidates.begin(); dauitr != dau_candidates.end(); dauitr++) {
+    vtx->addDaughter(*dauitr); // set tracks if the origin is near enough.
+    *vtx += *(const_cast<MCParticle*>(*dauitr)); 
+//if ((*dauitr)->Pz()>40) {
+//std::cerr << "#### pz = " << (*dauitr)->Pz();
+TVector3 pos((*dauitr)->getVertex());
+TVector3 epos((*dauitr)->getEndVertex());
+std::map<const MCParticle*,int>::iterator mcindexitr;
+mcindexitr = _mcpIndex.find(*dauitr);
+int index = -1;
+if (mcindexitr != _mcpIndex.end()) index = mcindexitr->second;
+//std::cerr << "  "<< vpos.Z() - pos.Z() << " flight len = " << (pos-epos).Mag() << " pdg = " << (*dauitr)->getPDG() << " index = " << index << std::endl;
+//test = true;
+//}
+  }
+//if (test) std::cerr << " pz sum = " << vtx->Pz() << std::endl;
+//std::cerr << " pz sum = " << vtx->Pz() << std::endl;
+//std::cerr << std::endl;
+  return vtx; 
+// why sum of momutum of primary vertex tracks is not 0? It seems to be related to ISR emission.
+} 
+
+//bool MyAnalysis::MCParticleExt::isAncestorOf(const MCParticle* in) {
+//  if (!in) return false;
+//  if (_ancestor==in) return true;
+//  else {
+//     const MCParticle* parent = in->getParent();
+//     if(isAncestorOf(parent)) return true; 
+//  }
+//  return false;
+//};
+//
+//bool MyAnalysis::MCParticleExt::isDescendantOf(const MCParticle* in) {
+//  if (!in) return false;
+//  if (_descendant==in) return true;
+//  else {
+//    if (in->getDaughters().size()) {
+//      for (int i = 0; i < in->getDaughters().size(); i++) {
+//        const MCParticle* daughter = in->getDaughters()[i];
+//        if(isDescendantOf(daughter)) return true; 
+//      }
+//    }
+//  }
+//  return false;
+//};
 #endif
 
 }

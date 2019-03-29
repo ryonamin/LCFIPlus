@@ -1748,6 +1748,18 @@ class FtNBNess : public FTAlgo {
   }
 };
 
+#if 1 //RY added on 20190226
+class FtJetTheta : public FTAlgo {
+ public:
+  FtJetTheta() : FTAlgo("jettheta") {}
+  void process() {
+    double pz = _jet->Z();
+    double p  = _jet->Vect().Mag();
+    _result   = TMath::ACos(pz/p); 
+  }
+};
+#endif
+
 void FTManager::initVars() {
   if (_initialized)return;
   _initialized = true;
@@ -1890,6 +1902,10 @@ void FTManager::initVars() {
   add( new FtBNess3() ); 
   add( new FtBNessMass() ); 
   add( new FtNBNess() ); 
+
+#if 1 // RY add on 20190223
+  add( new FtJetTheta() ); 
+#endif
 }
 
 void FlavorTag::init(Parameters* param) {
