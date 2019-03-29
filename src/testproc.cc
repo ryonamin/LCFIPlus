@@ -1841,7 +1841,7 @@ void MyAnalysis::process() {
   std::cerr << "Primary Vertex" << std::endl;
   std::vector<const Vertex*> pvtxs;
   pvtxs.push_back(pvtx);
-#if 0 // for single particle sample
+#if 1 // for single particle sample
   checkVertices(pvtxs,BCs,mcpMap,_pvtxtree);
   std::cerr << "Secondary Vertex" << std::endl;
   checkVertices(svtxs,BCs,mcpMap,_svtxtree);
