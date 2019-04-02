@@ -52,6 +52,18 @@ lcfiplus::Vertex* lcfiplus::findPrimaryVertex(TrackVec& tracks, double chi2, boo
 
   Vertex* ret =  VertexFinderTearDown<vector, VertexFitterSimple>()(tracks, 0, chi2, 0, ip);
   //Vertex * ret =  VertexFinderTearDown<vector>()(tracks, 0, chi2, 0, ip);
+ 
+#if 1
+  if (ret && ip) {
+    // Primary vertex fitting again if it is done with a beam spot constraint. 
+    // but now only with the found primary tracks and without the beam spot constraint.
+    // This procedure remove a vertex position bias from the beam spot constraint.
+    TrackVec& ptracks = ret->getTracks();
+    //delete ret;
+    ret = VertexFinderTearDown<vector, VertexFitterSimple>()(ptracks, 0, chi2, 0, 0); // ip is set to be null.
+  }
+#endif
+
   if (ret)
     ret->setPrimary(true);
 

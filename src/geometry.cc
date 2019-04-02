@@ -1323,7 +1323,7 @@ double GeometryHandler::PointFit(const vector<PointBase*>& points, const TVector
   ROOT::Minuit2::MnUserParameters param;
 #if 1 
   param.Add("x",initial.x(),1e-4);
-#else // test
+#else // test --> no change
   param.Add("x",initial.x(),3e-4);
 #endif
   param.Add("y",initial.y(),1e-4);
