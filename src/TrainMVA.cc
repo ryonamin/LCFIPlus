@@ -27,6 +27,7 @@
 #include "TMVA/Config.h"
 #if ROOT_VERSION_CODE >= ROOT_VERSION(6,8,0)
 #include "TMVA/DataLoader.h"
+#include "TMVA/PyMethodBase.h"
 #endif
 
 using namespace lcfiplus;
@@ -79,6 +80,9 @@ void TrainMVA::init(Parameters* param) {
     _tmvaBookType = TMVA::Types::kBDT;
   } else if (bookTypeString == "MLP") {
     _tmvaBookType = TMVA::Types::kMLP;
+  } else if (bookTypeString == "TF" || bookTypeString == "PyKeras") {
+    TMVA::PyMethodBase::PyInitialize();
+    _tmvaBookType = TMVA::Types::kPyKeras;
   } else {
     cout << "unknown TMVA type: " << bookTypeString << endl;
   }
@@ -92,6 +96,8 @@ void TrainMVA::init(Parameters* param) {
       _tmvaBookOptions = "!H:!V:NTrees=1000:BoostType=Grad:Shrinkage=0.10:UseBaggedBoost:NegWeightTreatment=IgnoreNegWeightsInTraining:BaggedSampleFraction=0.50:nCuts=20:MaxDepth=3";
     else if (_tmvaBookType == TMVA::Types::kMLP)
       _tmvaBookOptions = "!H:!V:NeuronType=tanh:NCycles=1000:HiddenLayers=N+5,5:TestRate=5:EstimatorType=MSE";
+    else if (_tmvaBookType == TMVA::Types::kPyKeras)
+      _tmvaBookOptions = "!H:!V:VarTransform=D,G:FilenameModel=model.h5:FilenameTrainedModel=modelTrained.h5:NumEpochs=5:BatchSize=1:SaveBestOnly=false:Verbose=1";
   }
 
 

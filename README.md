@@ -19,5 +19,7 @@ You should have received a copy of the GNU General Public License long with this
 
 
 ## Release notes
+This is a test version for Tensorflow interface.
+To compile this package, use myILCSoft_TF.cmake.
 
 see: [./doc/ReleaseNotes.md](./doc/ReleaseNotes.md)
