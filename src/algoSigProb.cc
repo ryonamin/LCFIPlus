@@ -52,8 +52,8 @@ double trackD0Significance(const Track* trk, const Vertex* pri) {
   //double x0 = trk->getX();
   //double y0 = trk->getY();
   //double priErr = ( pri->getCov()[Vertex::xx]*x0*x0 + 2.0*pri->getCov()[Vertex::xy]*x0*y0 + pri->getCov()[Vertex::yy]*y0*y0 ) / (x0*x0+y0*y0);
-  //double priErr = 0;
-  double priErr = pri->getCov()[Vertex::xx] + pri->getCov()[Vertex::yy];
+  //double priErr = pri->getCov()[Vertex::xx] + pri->getCov()[Vertex::yy];
+  double priErr = 0; // Avoid nan when vtx fitting failed. In any case this error should be negligibly small due to a small beam spot sizes in XY. 
 
   /*
   printf("pri ntrk = %d\n",(int)pri->getAllTracks().size());
@@ -92,7 +92,11 @@ double trackD0Significance(const Track* trk, const Vertex* pri) {
   //if ( d0cov != d0cov ) printf("d0cov nan\n");
   //if ( d0cov < 0 ) printf("d0cov %f\n",d0cov);
 
-  if ( d0err != d0err ) printf("d0err nan, d0cov %f, priErr=%f\n", d0cov, priErr);
+  if ( d0err != d0err ) {
+    if (Globals::Instance()->getDebugMode()>0) {
+      printf("d0err nan, d0cov %f, priErr=%f\n", d0cov, priErr);
+    }
+  }
   /*
   if ( d0sig != d0sig ) {
   	printf("d0sig nan\n");
@@ -123,6 +127,13 @@ double trackZ0Significance(const Track* trk, const Vertex* pri) {
   trk->setFlightLength( pocaXY.getFlightLength() );
 
   double z = trk->getZ();
+
+  if (priErr!=priErr) { // vtx fitting failed
+    if (Globals::Instance()->getDebugMode()>0) {
+      cerr << "priErr nan, possibly primary vertex fitting failed. Use beam spot size as z-position error." << endl;
+    }
+    priErr = Globals::Instance()->getBeamSizeZ(); // use beam spot size instead
+  }
 
   //double z0 = trk->par[Track::z0];
   double z0 = fabs( z-pri->getZ() );

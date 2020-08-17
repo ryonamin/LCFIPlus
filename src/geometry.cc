@@ -331,7 +331,9 @@ double Helix::LogLikelihood(const TVector3& p, double& tmin)const {
     double step = 1e-4*(tulimit-tllimit); // 1e-3 and 1e-5 also seem to work.
     min.SetLimitedVariable(0,"t",t, step, tllimit, tulimit);
   } else {
-    std::cerr << "!!! ERROR Helix::LogLikelihood(). This helix has no flag. GetFlag() = " << GetFlag() << std::endl; 
+    if (Globals::Instance()->getDebugMode()>0) {
+      std::cerr << "!!! ERROR Helix::LogLikelihood(). This helix has no flag. GetFlag() = " << GetFlag() << std::endl; 
+    }
     return -1e10;
   }
 

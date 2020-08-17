@@ -135,6 +135,12 @@ class Globals {
   double getBeamSizeZ()const {
     return _beamSizeZ;
   }
+  void setDebugMode(int mode) {
+    _DebugMode = mode;
+  }
+  int getDebugMode()const {
+    return _DebugMode;
+  }
 
  private:
   // value of b field to be read from DD4hep
@@ -142,6 +148,7 @@ class Globals {
   double _beamSizeX;
   double _beamSizeY;
   double _beamSizeZ;
+  int    _DebugMode;
   static Globals* _theInstance;
 
   Globals();

@@ -672,7 +672,14 @@ void LCIOStorer::ReadVertices(const char* vtxname, vector<const Vertex*>* lcfico
           if (_trackLCIORel2.count(lciotr)) {
             flavtx->add(_trackLCIORel2[lciotr]);
           } else {
-            cerr << "LCIOStorer::SetEvent: Track associated to LCIO vertex is invalid!" << endl;
+            //cerr << "LCIOStorer::SetEvent: Track associated to LCIO vertex is invalid!" << endl;
+            if (Globals::Instance()->getDebugMode()>0) {
+              cerr << "LCIOStorer::SetEvent:"                                            << endl;
+              cerr << "   Searching PFOs corresponding to tracks associated vertices"    << endl; 
+              cerr << "   from input PFO collection, but no correspondance found."       << endl;
+              cerr << "   Possible reason :"                                             << endl; 
+              cerr << "      PFO collection without isolated leptons used as PFO input." << endl;
+            }
             continue;
           }
         }

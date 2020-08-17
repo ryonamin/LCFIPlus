@@ -37,6 +37,9 @@ LcfiplusProcessor::LcfiplusProcessor() : Processor("LcfiplusProcessor") {
   // MCP on/off
   registerProcessorParameter("UseMCP", "Whether MCParticle collection is imported or not", _useMcp, int(0));
 
+  // Debug print out 0: off
+  registerProcessorParameter("DebugMode", "Dump debug detailed information ", _DebugMode, int(0));
+
   // input collections
   registerInputCollection(LCIO::RECONSTRUCTEDPARTICLE, "PFOCollection" , "Particle flow output collection",
                           _pfoCollectionName, std::string(""));
@@ -123,6 +126,7 @@ void LcfiplusProcessor::init() {
     Globals::Instance()->setBeamSizeX(_beamSizeX);
     Globals::Instance()->setBeamSizeY(_beamSizeY);
     Globals::Instance()->setBeamSizeZ(_beamSizeZ);
+    Globals::Instance()->setDebugMode(_DebugMode);
 
     // register observer
     Event::Instance()->RegisterObserver(this);

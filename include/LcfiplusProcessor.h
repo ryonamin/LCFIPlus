@@ -79,6 +79,7 @@ class LcfiplusProcessor : public Processor, public lcfiplus::EventStoreObserver 
   float _beamSizeX;
   float _beamSizeY;
   float _beamSizeZ;
+  int   _DebugMode;
 
   int _readSubdetectorEnergies;
   int _trackHitOrdering;
