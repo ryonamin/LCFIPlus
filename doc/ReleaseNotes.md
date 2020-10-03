@@ -1,3 +1,49 @@
+# v00-08
+
+* 2019-09-04 Andre Sailer ([PR#51](https://github.com/LCFIPlus/LCFIPlus/pull/51))
+  - Placeholder: add <functional> for gcc7/8, llvm5
+
+* 2019-09-04 Frank Gaede ([PR#50](https://github.com/LCFIPlus/LCFIPlus/pull/50))
+  - make compatible w/ c++17
+         - replace std::bind2nd w/ std::bind
+            and std::placeholders::_1 in VertexSelector.h
+
+* 2019-03-05 Andre Sailer ([PR#46](https://github.com/LCFIPlus/LCFIPlus/pull/46))
+  - LCIOStorer: fix memory leak of PIDHandler
+  - LCFIPlusProcessor: clean algos and params after the end() of algos, fix memory leaks
+  - Process: fix memory leak of `double *ymin`, use `std::vector<double>`
+  - Process: use shared_ptr for JetFinder, fixes memory leak
+  - VertexFitterSimple: fix memory leak for IP: only create it if it is used
+  - VertexFinderSuehara: fix mismatch between new[] and delete (w/o []), use std::vector<double>
+
+# v00-07
+
+* 2018-10-30 Ryo Yonamine ([PR#45](https://github.com/lcfiplus/LCFIPlus/pull/45))
+  - Add initializatioin.
+  - Prevent accessing a null pointer.
+
+* 2018-10-22 Ryo Yonamine ([PR#44](https://github.com/lcfiplus/LCFIPlus/pull/44))
+  - bug fix. "1" and "0" didn't work after the previous modification. now any of "true", "false", "1", "0" work.
+
+* 2018-10-19 Ryo Yonamine ([PR#43](https://github.com/lcfiplus/LCFIPlus/pull/43))
+  - too-small primary vertex postion errrors
+  - problems caused due to the ip semaring
+  - problem with which boolean parameters were not able to set by "true" or "false"
+  
+  New variables for flavor tagging introduced :(d0/z0)prob(b/c/q)2.
+  These can be used istead of (d0/z0)prob(b/c/q).
+  This fixs the problem that maximax exceeds 1.
+  The flavor tagging performance will be slightly improved.
+
+# v00-06-09
+
+* 2018-05-14 Ryo Yonamine ([PR#38](https://github.com/lcfiplus/LCFIPlus/pull/38))
+  Add daughter relation in lcfiplus::MCPartilce. This change does not affect usual reconstruction where no MCParticle is used.
+
+* 2018-07-14 Ryo Yonamine ([PR#39](https://github.com/lcfiplus/LCFIPlus/pull/39))
+  Cope with events having no vertex track candidates.
+  - It tried to add a vertex even if it is a null pointer. This is confusing and caused a problem later processes in some cases.
+
 # v00-06-08
 
 * 2018-03-08 Ryo Yonamine ([PR#36](https://github.com/lcfiplus/LCFIPlus/pull/36))

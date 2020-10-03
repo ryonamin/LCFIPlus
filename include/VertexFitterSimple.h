@@ -19,9 +19,15 @@ class VertexFitterSimple {
 
     GeometryHandler* gh = GeometryHandler::Instance();
     if (pointConstraint) {
+<<<<<<< HEAD
       Point* ip = new Point(pointConstraint,PointBase::PRIVTX);
       vector<PointBase*> tracks;
       if (!pointInitialOnly) {
+=======
+      vector<PointBase*> tracks;
+      if (!pointInitialOnly) {
+        Point* ip = new Point(pointConstraint,PointBase::PRIVTX);
+>>>>>>> 8e39a9e980534389726ae35113efd0e1e740d68d
         tracks.push_back(ip);
       }
       int ntracks = 0;
