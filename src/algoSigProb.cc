@@ -54,6 +54,11 @@ double trackD0Significance(const Track* trk, const Vertex* pri) {
   //double priErr = ( pri->getCov()[Vertex::xx]*x0*x0 + 2.0*pri->getCov()[Vertex::xy]*x0*y0 + pri->getCov()[Vertex::yy]*y0*y0 ) / (x0*x0+y0*y0);
   //double priErr = 0;
   double priErr = pri->getCov()[Vertex::xx] + pri->getCov()[Vertex::yy];
+  if (priErr!=priErr || priErr < 0.) { // vtx fitting failed
+    double dx = Globals::Instance()->getBeamSizeX(); // use beam spot size instead
+    double dy = Globals::Instance()->getBeamSizeY(); // use beam spot size instead
+    priErr = dx*dx + dy*dy; 
+  }
 
   /*
   printf("pri ntrk = %d\n",(int)pri->getAllTracks().size());
@@ -117,6 +122,10 @@ double trackZ0Significance(const Track* trk, const Vertex* pri) {
   trk->setFlightLength(0);
   double priErr = pri->getCov()[Vertex::zz];
   //double priErr = 0;
+  if (priErr!=priErr || priErr < 0.) { // vtx fitting failed
+    double dz = Globals::Instance()->getBeamSizeZ(); // use beam spot size instead
+    priErr = dz*dz; 
+  }
 
   // include error from primary vertex
   TrackPocaXY pocaXY(trk,pri);
@@ -146,6 +155,11 @@ double signedD0Significance(const Track* trk, const Jet* jet, const Vertex* pri,
   		+ pri->getCov()[Vertex::yy]*y0*y0 ) / (x0*x0+y0*y0);
   */
   double priErr = pri->getCov()[Vertex::xx] + pri->getCov()[Vertex::yy];
+  if (priErr!=priErr || priErr < 0.) { // vtx fitting failed
+    double dx = Globals::Instance()->getBeamSizeX(); // use beam spot size instead
+    double dy = Globals::Instance()->getBeamSizeY(); // use beam spot size instead
+    priErr = dx*dx + dy*dy; 
+  }
   
 
   if (updateFlt) {
@@ -205,7 +219,12 @@ double signedZ0Significance(const Track* trk, const Jet* jet, const Vertex* pri,
   //if (pca.Dot(jetz) < 0) signz0 = -1;
   //double z0 = trk->getZ0() - pri->getZ();
   double signedz0 = signedZ0(trk,jet,pri,updateFlt);
-  double z0errsq = trk->getCovMatrix()[tpar::z0z0] + pri->getCov()[Vertex::zz];
+  double priErr = pri->getCov()[Vertex::zz];
+  if (priErr!=priErr || priErr < 0.) { // vtx fitting failed
+    double dz = Globals::Instance()->getBeamSizeZ(); // use beam spot size instead
+    priErr = dz*dz; 
+  }
+  double z0errsq = trk->getCovMatrix()[tpar::z0z0] + priErr;
   //double z0errsq = trk->getCovMatrix()[tpar::z0z0];
   //double z0sig = sqrt( z0*z0/z0errsq )*signz0;
   double z0sig = signedz0 / sqrt( z0errsq );
@@ -281,6 +300,10 @@ double jointProbD0(const Jet* jet, const Vertex* pri, int minhitcut, double maxd
     return 0;
   }
 
+  if (isinf(log(prod))) {
+    return 0;
+  }
+
   prod *= 1./hiprob;
   --ntrk;
 
@@ -322,6 +345,10 @@ double jointProbZ0(const Jet* jet, const Vertex* pri, int minhitcut, double maxz
   }
 
   if (hiprob == 0) {
+    return 0;
+  }
+
+  if (isinf(log(prod))) {
     return 0;
   }
 
